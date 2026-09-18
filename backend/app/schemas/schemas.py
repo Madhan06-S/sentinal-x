@@ -31,10 +31,26 @@ class AlertCreate(BaseModel):
 
 class AlertResponse(AlertCreate, ORMModel):
     id: str
+    event_id: Optional[str] = None
+    error_code: Optional[str] = None
     status: AlertStatus
     fingerprint: Optional[str] = None
     created_at: datetime
     incident_id: Optional[str] = None
+
+
+class NormalizedEvent(BaseModel):
+    event_id: str
+    source: str
+    event_type: str
+    service: str
+    environment: str
+    severity: Severity
+    timestamp: datetime
+    error_code: Optional[str] = None
+    message: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
 
 
 class IncidentCreate(BaseModel):
@@ -251,3 +267,39 @@ class RemediationActionResponse(ORMModel):
     created_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+
+
+class KnowledgeDocumentCreate(BaseModel):
+    title: str
+    content: str
+    document_type: str
+    service: Optional[str] = None
+    environment: Optional[str] = None
+    error_code: Optional[str] = None
+    tags: Optional[dict[str, Any]] = None
+
+
+class KnowledgeDocumentResponse(KnowledgeDocumentCreate, ORMModel):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class AIInvestigationResult(BaseModel):
+    probable_root_cause: str
+    confidence: float
+    hypotheses: list[Any] = Field(default_factory=list)
+    evidence: list[str] = Field(default_factory=list)
+    supporting_evidence: list[str] = Field(default_factory=list)
+    contradicting_evidence: list[str] = Field(default_factory=list)
+    missing_evidence: list[str] = Field(default_factory=list)
+    business_impact: str = "Unknown"
+    recommended_action: str = "NO_ACTION"
+    reasoning: Optional[str] = None
+
+
+
+class AIDecisionResult(BaseModel):
+    decision: str
+    reason: str
+    action_parameters: dict[str, Any] = {}

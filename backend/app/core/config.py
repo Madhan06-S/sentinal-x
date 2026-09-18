@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     ANALYSIS_DEBOUNCE_SECONDS: float = 3.0
     AUTO_REMEDIATE_LOW_RISK: bool = True
 
+    GITHUB_WEBHOOK_SECRET: str = ""
+    
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

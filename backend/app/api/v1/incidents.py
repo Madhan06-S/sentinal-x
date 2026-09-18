@@ -10,6 +10,7 @@ from app.schemas.schemas import (
     IncidentResponse,
     RejectionRequest,
     AlertResponse,
+    AIAnalysisRecord,
 )
 from app.services.incident_service import (
     get_incident,
@@ -72,13 +73,42 @@ async def read_incident_graph(incident_id: str, db: AsyncSession = Depends(get_d
     return get_incident_graph(incident)
 
 
+@router.post("/{incident_id}/investigate", response_model=IncidentResponse)
 @router.post("/{incident_id}/analyze", response_model=IncidentResponse)
-async def reanalyze_incident(incident_id: str, db: AsyncSession = Depends(get_db)):
+async def investigate_incident(incident_id: str, db: AsyncSession = Depends(get_db)):
     incident = await get_incident(db, incident_id)
     if not incident:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
     schedule_analysis(incident.id)
     return incident
+
+
+@router.post("/{incident_id}/decide", response_model=IncidentResponse)
+async def decide_incident(incident_id: str, db: AsyncSession = Depends(get_db)):
+    # In this unified pipeline, investigate and decide are executed together in run_ai_analysis_pipeline.
+    # For backward compatibility or manual triggering, this schedules the same pipeline.
+    incident = await get_incident(db, incident_id)
+    if not incident:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
+    schedule_analysis(incident.id)
+    return incident
+
+
+@router.get("/{incident_id}/analysis", response_model=list[AIAnalysisRecord])
+async def get_incident_analysis(incident_id: str, db: AsyncSession = Depends(get_db)):
+    incident = await get_incident_detailed(db, incident_id)
+    if not incident:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
+    return incident.analyses
+
+
+@router.get("/{incident_id}/verification", response_model=list[AuditLogResponse])
+async def get_incident_verification(incident_id: str, db: AsyncSession = Depends(get_db)):
+    incident = await get_incident(db, incident_id)
+    if not incident:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
+    timeline = await get_incident_timeline(db, incident_id)
+    return [log for log in timeline if log.event_type in ("VERIFICATION_STARTED", "VERIFICATION_FAILED", "INCIDENT_RESOLVED")]
 
 
 @router.post("/{incident_id}/approve", response_model=IncidentResponse)
@@ -115,8 +145,11 @@ async def remediate_incident(incident_id: str, db: AsyncSession = Depends(get_db
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No recommended action available")
     if incident.approval_required and incident.status == IncidentStatus.AWAITING_APPROVAL:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Human approval is required before remediation")
+    if incident.status == IncidentStatus.RESOLVED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incident is already resolved")
     if incident.status not in {
-        IncidentStatus.AWAITING_APPROVAL,
+        IncidentStatus.OPEN,
+        IncidentStatus.DECISION_PENDING,
         IncidentStatus.INVESTIGATING,
         IncidentStatus.REMEDIATING,
         IncidentStatus.FAILED,

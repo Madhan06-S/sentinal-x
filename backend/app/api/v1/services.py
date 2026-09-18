@@ -7,7 +7,7 @@ from app.services.catalog_service import get_service_by_id, list_services
 router = APIRouter()
 
 
-@router.get("/", response_model=list[ServiceResponse])
+@router.get("", response_model=list[ServiceResponse])
 async def list_catalog_services(db: AsyncSession = Depends(get_db)):
     return await list_services(db)
 

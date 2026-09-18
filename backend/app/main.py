@@ -18,7 +18,9 @@ from app.api.v1 import (
     simulation,
     webhooks,
     websockets,
+    events,
 )
+from app.api.v1.integrations import github
 
 
 @asynccontextmanager
@@ -87,6 +89,7 @@ async def health_check():
     }
 
 
+app.include_router(events.router, prefix="/api/v1/events", tags=["Events"])
 app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["Alerts"])
 app.include_router(incidents.router, prefix="/api/v1/incidents", tags=["Incidents"])
 app.include_router(services.router, prefix="/api/v1/services", tags=["Services"])
@@ -97,3 +100,12 @@ app.include_router(audit.router, prefix="/api/v1/audit", tags=["Audit"])
 app.include_router(simulation.router, prefix="/api/v1/simulation", tags=["Simulation"])
 app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
 app.include_router(websockets.router, prefix="/api/v1/ws", tags=["WebSockets"])
+app.include_router(github.router, prefix="/api/v1/integrations/github", tags=["Integrations"])
+
+from fastapi.responses import FileResponse
+from pathlib import Path
+
+@app.get("/", response_class=FileResponse, include_in_schema=False)
+async def serve_dashboard():
+    html_path = Path(__file__).parent / "static" / "index.html"
+    return FileResponse(html_path)

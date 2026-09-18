@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Autonomous Enterprise Incident Resolution Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #090d16;
+      color: #f1f5f9;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    .glass-card-accent {
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+    .glow-blue {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+    }
+    .glow-red {
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+    }
+    .glow-green {
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.25);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const API_BASE = "http://127.0.0.1:8000/api/v1";
+
+    function App() {
+      const [incidents, setIncidents] = useState([]);
+      const [selectedIncident, setSelectedIncident] = useState(null);
+      const [timeline, setTimeline] = useState([]);
+      const [analyses, setAnalyses] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [simulating, setSimulating] = useState(false);
+      const [msg, setMsg] = useState("");
+
+      const fetchIncidents = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/incidents`);
+          if (res.ok) {
+            const data = await res.json();
+            setIncidents(data);
+            if (data.length > 0 && !selectedIncident) {
+              selectIncident(data[0].id);
+            }
+          }
+        } catch (e) {
+          console.error("Fetch incidents error:", e);
+        }
+      };
+
+      const selectIncident = async (id) => {
+        try {
+          const res = await fetch(`${API_BASE}/incidents/${id}`);
+          if (res.ok) {
+            const data = await res.json();
+            setSelectedIncident(data);
+            setAnalyses(data.analyses || []);
+          }
+          const tRes = await fetch(`${API_BASE}/incidents/${id}/timeline`);
+          if (tRes.ok) {
+            const tData = await tRes.json();
+            setTimeline(tData);
+          }
+        } catch (e) {
+          console.error("Select incident error:", e);
+        }
+      };
+
+      useEffect(() => {
+        fetchIncidents();
+        const interval = setInterval(fetchIncidents, 3000);
+        return () => clearInterval(interval);
+      }, []);
+
+      const triggerScenario = async (scenarioName) => {
+        setSimulating(true);
+        setMsg(`Triggering ${scenarioName}...`);
+        try {
+          const res = await fetch(`${API_BASE}/simulation/start?scenario=${scenarioName}`, { method: "POST" });
+          if (res.ok) {
+            setMsg(`Scenario ${scenarioName} started! Ingesting signals...`);
+            setTimeout(() => {
+              fetchIncidents();
+              setSimulating(false);
+            }, 3500);
+          }
+        } catch (e) {
+          setMsg(`Error triggering scenario: ${e.message}`);
+          setSimulating(false);
+        }
+      };
+
+      const runInvestigation = async (id) => {
+        setLoading(true);
+        setMsg("Running AI Investigation & RAG retrieval...");
+        try {
+          const res = await fetch(`${API_BASE}/incidents/${id}/analyze`, { method: "POST" });
+          if (res.ok) {
+            setMsg("AI Investigation completed.");
+            await selectIncident(id);
+            await fetchIncidents();
+          } else {
+            const err = await res.json();
+            setMsg(`Investigation failed: ${err.detail || 'Error'}`);
+          }
+        } catch (e) {
+          setMsg(`Error: ${e.message}`);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const approveAction = async (id, decision) => {
+        setLoading(true);
+        setMsg(`${decision} action...`);
+        try {
+          const res = await fetch(`${API_BASE}/incidents/${id}/approve`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ approved_by: "sre_lead", comment: "Authorized via UI", decision })
+          });
+          if (res.ok) {
+            setMsg(`Action ${decision}! Executing remediation & verification...`);
+            await selectIncident(id);
+            await fetchIncidents();
+          } else {
+            const err = await res.json();
+            setMsg(`Approval failed: ${err.detail || 'Error'}`);
+          }
+        } catch (e) {
+          setMsg(`Error: ${e.message}`);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const remediateAction = async (id) => {
+        setLoading(true);
+        setMsg("Executing remediation & threshold verification...");
+        try {
+          const res = await fetch(`${API_BASE}/incidents/${id}/remediate`, { method: "POST" });
+          if (res.ok) {
+            setMsg("Remediation executed.");
+            await selectIncident(id);
+            await fetchIncidents();
+          } else {
+            const err = await res.json();
+            setMsg(`Remediation failed: ${err.detail || 'Error'}`);
+          }
+        } catch (e) {
+          setMsg(`Error: ${e.message}`);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const statusColor = (s) => {
+        switch (s) {
+          case 'RESOLVED': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+          case 'AWAITING_APPROVAL': return 'bg-amber-500/20 text-amber-400 border-amber-500/30 glow-red';
+          case 'REMEDIATING': case 'INVESTIGATING': return 'bg-blue-500/20 text-blue-400 border-blue-500/30 glow-blue';
+          case 'FAILED': case 'ESCALATED': return 'bg-red-500/20 text-red-400 border-red-500/30';
+          default: return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+        }
+      };
+
+      const severityColor = (s) => {
+        switch (s) {
+          case 'CRITICAL': return 'bg-red-500/20 text-red-400 border-red-500/30';
+          case 'HIGH': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+          case 'MEDIUM': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+          default: return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+        }
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          {/* TOP HEADER */}
+          <header className="border-b border-slate-800 bg-slate-900/80 px-6 py-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md">
+            <div className="flex items-center space-x-3">
+              <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-lg text-white shadow-lg glow-blue">
+                ⚡
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-slate-100 leading-none">SentinelX Incident Engine</h1>
+                <p className="text-xs text-slate-400 mt-1">Autonomous Enterprise Incident Resolution</p>
+              </div>
+            </div>
+
+            {/* DEMO CONTROLS */}
+            <div className="flex items-center space-x-3">
+              <button
+                disabled={simulating}
+                onClick={() => triggerScenario("cascade")}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-lg transition-all shadow-md hover:shadow-blue-500/25 disabled:opacity-50"
+              >
+                🚀 Scenario 1: Payment Cascade
+              </button>
+              <button
+                disabled={simulating}
+                onClick={() => triggerScenario("insufficient_evidence")}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-medium text-xs rounded-lg transition-all shadow-md hover:shadow-purple-500/25 disabled:opacity-50"
+              >
+                ❓ Scenario 2: Unknown Cause
+              </button>
+            </div>
+          </header>
+
+          {/* STATUS NOTIFICATION BAR */}
+          {msg && (
+            <div className="bg-slate-900/90 border-b border-blue-500/30 px-6 py-2 text-xs text-blue-400 flex items-center justify-between">
+              <span>ℹ️ {msg}</span>
+              <button onClick={() => setMsg("")} className="text-slate-500 hover:text-slate-300">✕</button>
+            </div>
+          )}
+
+          {/* MAIN WORKSPACE GRID */}
+          <div className="flex-1 grid grid-cols-12 gap-6 p-6">
+            
+            {/* LEFT SIDEBAR: INCIDENT LIST */}
+            <div className="col-span-4 flex flex-col space-y-4">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
+                <span>Active Incidents ({incidents.length})</span>
+                <span className="flex items-center space-x-1">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>Live Stream</span>
+                </span>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                {incidents.length === 0 ? (
+                  <div className="glass-card p-6 text-center text-slate-400 text-sm">
+                    No active incidents. Trigger a scenario above to test the engine!
+                  </div>
+                ) : (
+                  incidents.map((inc) => (
+                    <div
+                      key={inc.id}
+                      onClick={() => selectIncident(inc.id)}
+                      className={`glass-card p-4 rounded-xl cursor-pointer transition-all border ${
+                        selectedIncident?.id === inc.id ? 'border-blue-500/80 bg-slate-800/80 shadow-lg glow-blue' : 'hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-mono text-xs text-blue-400 font-semibold">{inc.id}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColor(inc.status)}`}>
+                          {inc.status}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-semibold text-slate-200 line-clamp-1 mb-2">{inc.title}</h3>
+                      <div className="flex items-center justify-between text-xs text-slate-400">
+                        <span className={`px-2 py-0.5 rounded border text-[10px] ${severityColor(inc.severity)}`}>
+                          {inc.severity}
+                        </span>
+                        <span>{new Date(inc.created_at).toLocaleTimeString()}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT WORKSPACE: DETAILED INVESTIGATION & REMEDIATION */}
+            <div className="col-span-8 flex flex-col space-y-6">
+              {selectedIncident ? (
+                <>
+                  {/* INCIDENT HEADER CARD */}
+                  <div className="glass-card p-6 rounded-2xl">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center space-x-3 mb-1">
+                          <span className="font-mono text-sm text-blue-400 font-bold">{selectedIncident.id}</span>
+                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${statusColor(selectedIncident.status)}`}>
+                            {selectedIncident.status}
+                          </span>
+                        </div>
+                        <h2 className="text-xl font-bold text-slate-100 mb-2">{selectedIncident.title}</h2>
+                        <p className="text-xs text-slate-400">Created: {new Date(selectedIncident.created_at).toLocaleString()}</p>
+                      </div>
+
+                      {/* WORKSPACE ACTION BUTTONS */}
+                      <div className="flex items-center space-x-2">
+                        <button
+                          disabled={loading}
+                          onClick={() => runInvestigation(selectedIncident.id)}
+                          className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition-all disabled:opacity-50"
+                        >
+                          🔍 Run AI Investigation
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* NEXACART TELEMETRY PANEL */}
+                  <div className="glass-card p-6 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                      <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+                        <span>📡 NexaCart Telemetry (Original Normalized Event)</span>
+                      </h3>
+                      <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-500/30">
+                        POST /api/v1/events
+                      </span>
+                    </div>
+
+                    {selectedIncident.alerts && selectedIncident.alerts.length > 0 ? (
+                      <div className="space-y-3">
+                        {selectedIncident.alerts.map((evt, idx) => {
+                          const meta = evt.metadata || evt.meta || {};
+                          const sanitizedMeta = { ...meta };
+                          delete sanitizedMeta.cardholder;
+                          delete sanitizedMeta.total_charge;
+                          delete sanitizedMeta.email;
+                          delete sanitizedMeta.phone;
+
+                          return (
+                            <div key={evt.id || idx} className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2 text-xs font-mono">
+                                  <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
+                                    Source: <strong className="text-blue-400">{evt.source || 'application'}</strong>
+                                  </span>
+                                  <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
+                                    App: <strong className="text-indigo-400">{sanitizedMeta.app || 'NexaCart'}</strong>
+                                  </span>
+                                  <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
+                                    Type: <strong className="text-purple-400">{evt.event_type || evt.alert_type}</strong>
+                                  </span>
+                                </div>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${severityColor(evt.severity)}`}>
+                                  {evt.severity}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-3 gap-2 text-xs font-mono text-slate-300">
+                                <div><span className="text-slate-500">Service:</span> {evt.service}</div>
+                                <div><span className="text-slate-500">Environment:</span> {evt.environment || 'development'}</div>
+                                <div><span className="text-slate-500">Error Code:</span> <strong className="text-red-400">{evt.error_code || 'N/A'}</strong></div>
+                              </div>
+
+                              <div className="text-xs text-slate-200 bg-slate-950 p-2.5 rounded-lg border border-slate-800 font-mono">
+                                <span className="text-slate-500 block mb-1">Message:</span>
+                                {evt.message}
+                              </div>
+
+                              {Object.keys(sanitizedMeta).length > 0 && (
+                                <div className="text-[11px] font-mono text-slate-400 bg-slate-950/60 p-2 rounded border border-slate-800/80">
+                                  <span className="text-slate-500">Operational Metadata:</span> {JSON.stringify(sanitizedMeta)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center text-slate-400 text-xs">
+                        No telemetry alerts attached to this incident.
+                      </div>
+                    )}
+
+                    {/* PIPELINE ARCHITECTURE MAP */}
+                    <div className="pt-2 border-t border-slate-800/80">
+                      <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                        Pipeline Lifecycle Execution Path:
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                        <span className="bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">NexaCart Event</span>
+                        <span>➔</span>
+                        <span className="bg-purple-900/40 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">POST /api/v1/events</span>
+                        <span>➔</span>
+                        <span className="bg-indigo-900/40 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/30">Incident Correlation ({selectedIncident.id})</span>
+                        <span>➔</span>
+                        <span className="bg-sky-900/40 text-sky-300 px-2 py-0.5 rounded border border-sky-500/30">RAG Retrieval</span>
+                        <span>➔</span>
+                        <span className="bg-emerald-900/40 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">Groq RCA (Layer 1)</span>
+                        <span>➔</span>
+                        <span className="bg-amber-900/40 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">Risk Policy (Layer 2)</span>
+                        <span>➔</span>
+                        <span className="bg-rose-900/40 text-rose-300 px-2 py-0.5 rounded border border-rose-500/30">Human Approval</span>
+                        <span>➔</span>
+                        <span className="bg-teal-900/40 text-teal-300 px-2 py-0.5 rounded border border-teal-500/30">Remediation & Verification</span>
+                        <span>➔</span>
+                        <span className="bg-emerald-950 text-emerald-400 font-bold px-2 py-0.5 rounded border border-emerald-500">RESOLVED</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* LAYER 1: RCA & HYPOTHESES PANEL */}
+                  <div className="glass-card p-6 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                      <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+                        <span>🧠 Layer 1: AI Root Cause Analysis</span>
+                      </h3>
+                      {selectedIncident.confidence !== null && (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-slate-400">Confidence:</span>
+                          <span className="text-xs font-bold font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            {Math.round(selectedIncident.confidence * 100)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedIncident.root_cause ? (
+                      <div className="space-y-4">
+                        <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                          <div className="text-xs text-slate-400 mb-1">Probable Root Cause</div>
+                          <div className={`text-sm font-bold ${selectedIncident.root_cause === 'UNKNOWN' ? 'text-amber-400 font-mono' : 'text-slate-100'}`}>
+                            {selectedIncident.root_cause}
+                          </div>
+                          {selectedIncident.decision_reason && (
+                            <div className="text-xs text-slate-400 mt-2 border-t border-slate-800 pt-2">
+                              Reasoning: {selectedIncident.decision_reason}
+                            </div>
+                          )}
+                        </div>
+
+                        {selectedIncident.business_impact && (
+                          <div className="p-3 rounded-lg bg-blue-950/30 border border-blue-500/20 text-xs text-blue-300">
+                            🏢 Business Impact: {selectedIncident.business_impact}
+                          </div>
+                        )}
+
+                        {selectedIncident.analysis_summary && (
+                          <div>
+                            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Formulated Hypotheses</div>
+                            <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">
+                              {selectedIncident.analysis_summary}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-6 text-center text-slate-400 text-xs">
+                        No AI analysis run yet. Click "Run AI Investigation" above to perform RAG retrieval and RCA.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* LAYER 2: DECISION, RISK & APPROVAL PANEL */}
+                  <div className="glass-card p-6 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                      <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+                        <span>🛡️ Layer 2: Decision & Risk Policy</span>
+                      </h3>
+                      {selectedIncident.risk_level && (
+                        <span className={`text-xs font-bold px-2.5 py-0.5 rounded border ${
+                          selectedIncident.risk_level === 'HIGH' ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                        }`}>
+                          Risk: {selectedIncident.risk_level}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                      <div>
+                        <div className="text-xs text-slate-400">Recommended Action</div>
+                        <div className="text-base font-bold font-mono text-blue-400">
+                          {selectedIncident.recommended_action || "NO_ACTION"}
+                        </div>
+                      </div>
+
+                      {/* APPROVAL / REMEDIATION CONTROLS */}
+                      <div>
+                        {selectedIncident.approval_required && selectedIncident.status === 'AWAITING_APPROVAL' ? (
+                          <div className="flex items-center space-x-2">
+                            <button
+                              disabled={loading}
+                              onClick={() => approveAction(selectedIncident.id, 'APPROVED')}
+                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow-lg glow-green transition-all"
+                            >
+                              ✓ Approve High-Risk Action
+                            </button>
+                            <button
+                              disabled={loading}
+                              onClick={() => approveAction(selectedIncident.id, 'REJECTED')}
+                              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-red-400 font-semibold text-xs rounded-lg border border-slate-700 transition-all"
+                            >
+                              ✕ Reject
+                            </button>
+                          </div>
+                        ) : selectedIncident.status === 'REMEDIATING' || selectedIncident.status === 'OPEN' || selectedIncident.status === 'INVESTIGATING' ? (
+                          <button
+                            disabled={loading || selectedIncident.status === 'RESOLVED'}
+                            onClick={() => remediateAction(selectedIncident.id)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg shadow-lg glow-blue transition-all disabled:opacity-50"
+                          >
+                            ▶ Execute Remediation & Verify
+                          </button>
+                        ) : selectedIncident.status === 'RESOLVED' ? (
+                          <span className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold rounded-lg">
+                            ✓ Resolved & Verified
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AUDIT TRAIL */}
+                  <div className="glass-card p-6 rounded-2xl space-y-4">
+                    <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-3">
+                      📜 Lifecycle Audit Trail ({timeline.length})
+                    </h3>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {timeline.map((log) => (
+                        <div key={log.id} className="flex items-start justify-between text-xs p-2.5 rounded-lg bg-slate-900/50 border border-slate-800/60 font-mono">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-blue-400 font-semibold">{log.event_type}</span>
+                          </div>
+                          <span className="text-slate-400">{new Date(log.created_at).toLocaleTimeString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="glass-card p-12 text-center text-slate-400 text-sm">
+                  Select an incident from the left sidebar or trigger a simulation scenario.
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

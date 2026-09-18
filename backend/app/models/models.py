@@ -26,18 +26,19 @@ class AlertStatus(str, enum.Enum):
 class IncidentStatus(str, enum.Enum):
     OPEN = "OPEN"
     INVESTIGATING = "INVESTIGATING"
+    DECISION_PENDING = "DECISION_PENDING"
     AWAITING_APPROVAL = "AWAITING_APPROVAL"
     REMEDIATING = "REMEDIATING"
     VERIFYING = "VERIFYING"
     RESOLVED = "RESOLVED"
     FAILED = "FAILED"
+    ESCALATED = "ESCALATED"
 
 
 class Severity(str, enum.Enum):
     CRITICAL = "CRITICAL"
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
-    WARNING = "MEDIUM"
     LOW = "LOW"
     INFO = "INFO"
 
@@ -75,9 +76,13 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id = Column(String, primary_key=True, default=generate_uuid)
+    event_id = Column(String, unique=True, index=True, nullable=True)
+    environment = Column(String, index=True, nullable=True)
+    received_at = Column(DateTime(timezone=True), default=utcnow)
     source = Column(String, index=True, nullable=False)
     service = Column(String, index=True, nullable=False)
     alert_type = Column(String, index=True, nullable=False)
+    error_code = Column(String, index=True, nullable=True)
     severity = Column(Enum(Severity), nullable=False)
     message = Column(Text, nullable=False)
     timestamp = Column(DateTime(timezone=True), nullable=False)
@@ -131,6 +136,22 @@ class AuditLog(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     incident = relationship("Incident", back_populates="audit_logs")
+
+
+class KnowledgeDocument(Base):
+    __tablename__ = "knowledge_documents"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    document_type = Column(String, index=True, nullable=False) # e.g., 'resolution', 'troubleshooting', 'error_code'
+    service = Column(String, index=True, nullable=True)
+    environment = Column(String, index=True, nullable=True)
+    error_code = Column(String, index=True, nullable=True)
+    remediation_suggestion = Column(Text, nullable=True)
+    tags = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
 class Service(Base):
