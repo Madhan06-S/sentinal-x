@@ -23,6 +23,9 @@ build/
 
 # Databases & Cache
 *.db
+*.db-shm
+*.db-wal
+backend/*.db*
 backend/sentinelx.db
 .pytest_cache/
 backend/.pytest_cache/
