@@ -1,0 +1,34 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python virtual environment & cache
+venv/
+backend/venv/
+.venv/
+__pycache__/
+backend/__pycache__/
+backend/app/__pycache__/
+*.pyc
+
+# Build outputs
+dist/
+build/
+
+# Local environment variables
+.env
+.env.local
+
+# Databases & Cache
+*.db
+backend/sentinelx.db
+.pytest_cache/
+backend/.pytest_cache/
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

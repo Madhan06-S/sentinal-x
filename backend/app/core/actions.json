@@ -1,0 +1,22 @@
+{
+  "RESTART_SERVICE": {
+    "risk_level": "LOW",
+    "approval_required": false,
+    "description": "Restart a service instance or deployment replica."
+  },
+  "SCALE_SERVICE": {
+    "risk_level": "LOW",
+    "approval_required": false,
+    "description": "Increase replica count to absorb load."
+  },
+  "CLEAR_CACHE": {
+    "risk_level": "LOW",
+    "approval_required": false,
+    "description": "Flush a cache tier to recover stale state."
+  },
+  "ROLLBACK_DEPLOYMENT": {
+    "risk_level": "MEDIUM",
+    "approval_required": true,
+    "description": "Roll back the most recent deployment for a service."
+  }
+}
