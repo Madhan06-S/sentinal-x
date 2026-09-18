@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Topbar } from './components/layout/Topbar';
@@ -13,6 +13,7 @@ import { DeploymentsPage } from './pages/DeploymentsPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useRealtime } from './hooks/useRealtime';
+import { AutonomyLevel } from './components/layout/AutonomyDial';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,17 +25,22 @@ const queryClient = new QueryClient({
 });
 
 const AppContent: React.FC = () => {
-  // Activate real-time listener for automated query invalidations & toasts
+  const [autonomyLevel, setAutonomyLevel] = useState<AutonomyLevel>(3);
   useRealtime();
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 flex flex-col font-sans selection:bg-indigo-600 selection:text-white">
-      <Topbar systemStatus="CRITICAL" activeIncidentCount={3} />
+    <div className="min-h-screen bg-[#050810] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
+      <Topbar
+        systemStatus="CRITICAL"
+        activeIncidentCount={3}
+        autonomyLevel={autonomyLevel}
+        onChangeAutonomy={(level) => setAutonomyLevel(level)}
+      />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-[#0B0F17]">
+        <main className="flex-1 overflow-y-auto bg-[#050810]">
           <Routes>
-            <Route path="/" element={<OverviewPage />} />
+            <Route path="/" element={<OverviewPage autonomyLevel={autonomyLevel} />} />
             <Route path="/incidents" element={<IncidentsPage />} />
             <Route path="/incidents/:id" element={<IncidentDetailPage />} />
             <Route path="/alerts" element={<AlertsPage />} />

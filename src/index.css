@@ -6,9 +6,9 @@
 
 @layer base {
   body {
-    background-color: #0B0F17;
-    color: #F3F4F6;
-    font-family: 'Inter', sans-serif;
+    background-color: #050810;
+    color: #F8FAFC;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
   }
 }
 
@@ -18,63 +18,60 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B0F17;
+  background: #050810;
 }
 ::-webkit-scrollbar-thumb {
   background: #1E293B;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #06B6D4;
 }
 
 /* React Flow Dark Canvas overrides */
 .react-flow__renderer {
-  background-color: #0F172A !important;
+  background-color: #050810 !important;
 }
 
 .react-flow__background {
-  background-color: #0B0F17 !important;
+  background-color: #050810 !important;
 }
 
 .react-flow__controls {
-  background: #111827 !important;
+  background: #0A0F1D !important;
   border: 1px solid #1E293B !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7) !important;
 }
 
 .react-flow__controls-button {
-  background: #1E293B !important;
-  border-bottom: 1px solid #334155 !important;
-  color: #94A3B8 !important;
-  fill: #94A3B8 !important;
+  background: #161F33 !important;
+  border-bottom: 1px solid #1E293B !important;
+  color: #22D3EE !important;
+  fill: #22D3EE !important;
 }
 
 .react-flow__controls-button:hover {
-  background: #334155 !important;
-  color: #F8FAFC !important;
-  fill: #F8FAFC !important;
+  background: #1E293B !important;
+  color: #67E8F9 !important;
+  fill: #67E8F9 !important;
 }
 
-.react-flow__minimap {
-  background-color: #111827 !important;
-  border: 1px solid #1E293B !important;
-  border-radius: 8px !important;
+/* Card hover lift & cyan glow */
+.card-glow-hover {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-glow-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 211, 238, 0.5) !important;
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.15) !important;
 }
 
-/* Glassmorphism utility */
-.glass-panel {
-  background: rgba(17, 24, 39, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(30, 41, 59, 0.8);
-}
-
-.glass-panel-hover {
-  transition: all 0.2s ease-in-out;
-}
-.glass-panel-hover:hover {
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.08);
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

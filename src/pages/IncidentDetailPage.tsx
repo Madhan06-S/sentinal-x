@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageContainer } from '../components/layout/PageContainer';
 import { IncidentHeader } from '../components/incidents/IncidentHeader';
+import { BlastRadiusView } from '../components/incidents/BlastRadiusView';
 import { IncidentTimeline } from '../components/incidents/IncidentTimeline';
 import { RootCauseGraph } from '../components/incidents/RootCauseGraph';
 import { AIInvestigationPanel } from '../components/incidents/AIInvestigationPanel';
 import { BusinessImpactPanel } from '../components/incidents/BusinessImpactPanel';
 import { AIDecisionPanel } from '../components/incidents/AIDecisionPanel';
 import { RemediationPanel } from '../components/incidents/RemediationPanel';
+import { TimeTravelScrubber, scrubberTicks } from '../components/incidents/TimeTravelScrubber';
 import { ApprovalModal } from '../components/incidents/ApprovalModal';
 import { useIncident, useRCAGraph } from '../hooks/useIncident';
 import { useApproveRemediation, useRejectRemediation } from '../hooks/useIncidents';
@@ -27,6 +29,7 @@ export const IncidentDetailPage: React.FC = () => {
   const rejectMutation = useRejectRemediation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [scrubberIdx, setScrubberIdx] = useState(3);
 
   if (isLoading) {
     return (
@@ -45,10 +48,10 @@ export const IncidentDetailPage: React.FC = () => {
   if (error || !incident) {
     return (
       <PageContainer title="Incident Not Found">
-        <div className="p-8 bg-slate-900 border border-slate-800 rounded-2xl text-center space-y-4 max-w-lg mx-auto">
+        <div className="p-8 bg-zinc-900 border border-zinc-800 rounded-2xl text-center space-y-4 max-w-lg mx-auto">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-100">Unable to retrieve incident {targetId}</h3>
-          <p className="text-xs text-slate-400">
+          <h3 className="text-lg font-bold text-zinc-100">Unable to retrieve incident {targetId}</h3>
+          <p className="text-xs text-zinc-400">
             Check that the backend or mock data engine is running and reachable.
           </p>
           <div className="flex justify-center gap-3">
@@ -63,6 +66,9 @@ export const IncidentDetailPage: React.FC = () => {
       </PageContainer>
     );
   }
+
+  const currentScrubTick = scrubberTicks[scrubberIdx];
+  const scrubbedStatus = currentScrubTick ? (currentScrubTick.incidentStatus as any) : incident.status;
 
   const handleApproveConfirm = async () => {
     try {
@@ -84,7 +90,7 @@ export const IncidentDetailPage: React.FC = () => {
   return (
     <PageContainer
       title={`AI Investigation: ${incident.incident_id}`}
-      description="Hero Command View — Causal Root Cause Graph, Evidence Verification, and Autonomous Remediation Controller"
+      description="Hero Command View — Causal Root Cause Graph, Concentric Blast Radius, AI Evidence & Time-Travel Scrubber"
       action={
         <Button variant="outline" size="sm" onClick={() => navigate('/incidents')} icon={<ArrowLeft className="w-4 h-4" />}>
           Back to Incidents
@@ -93,13 +99,21 @@ export const IncidentDetailPage: React.FC = () => {
     >
       <div className="space-y-6">
         {/* 1. Header Banner */}
-        <IncidentHeader incident={incident} />
+        <IncidentHeader incident={{ ...incident, status: scrubbedStatus }} />
 
-        {/* 2. Interactive RCA Causal Graph */}
+        {/* 2. Concentric Blast Radius View */}
+        <BlastRadiusView
+          rootCauseService="payment-service"
+          ring1Count={4}
+          ring2Count={2}
+          ring3Count={3}
+        />
+
+        {/* 3. Interactive RCA Causal Graph */}
         <RootCauseGraph graphData={rcaGraph} />
 
-        {/* 3. AI Decision & Human Approval (if Awaiting Approval or Open) */}
-        {(incident.status === 'AWAITING_APPROVAL' || incident.status === 'OPEN') && (
+        {/* 4. AI Decision & Human Approval */}
+        {(scrubbedStatus === 'AWAITING_APPROVAL' || scrubbedStatus === 'OPEN') && (
           <AIDecisionPanel
             decision={incident.ai_decision}
             onApprove={() => setIsModalOpen(true)}
@@ -108,19 +122,25 @@ export const IncidentDetailPage: React.FC = () => {
           />
         )}
 
-        {/* 4. Active Remediation Progress Panel (if Remediation Executing/Verifying/Completed) */}
-        {(incident.status === 'REMEDIATING' || incident.status === 'VERIFYING' || incident.status === 'RESOLVED') && (
+        {/* 5. Active Remediation Progress Panel */}
+        {(scrubbedStatus === 'REMEDIATING' || scrubbedStatus === 'VERIFYING' || scrubbedStatus === 'RESOLVED') && (
           <RemediationPanel remediation={incident.remediation} />
         )}
 
-        {/* 5. AI Investigation Reasoning & Business Impact Grid */}
+        {/* 6. AI Investigation Reasoning & Business Impact Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <AIInvestigationPanel investigation={incident.ai_investigation} />
           <BusinessImpactPanel impact={incident.business_impact_details} />
         </div>
 
-        {/* 6. Chronological Incident Timeline */}
+        {/* 7. Chronological Incident Timeline */}
         <IncidentTimeline events={incident.timeline} />
+
+        {/* 8. Feature 6: Time-Travel Scrubber */}
+        <TimeTravelScrubber
+          currentIndex={scrubberIdx}
+          onScrub={(idx) => setScrubberIdx(idx)}
+        />
 
         {/* Approval Modal */}
         <ApprovalModal

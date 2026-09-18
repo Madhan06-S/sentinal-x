@@ -9,23 +9,17 @@ export default {
     extend: {
       colors: {
         background: {
-          DEFAULT: '#0B0F17',
-          secondary: '#111827',
-          tertiary: '#1F2937',
-          elevated: '#1E293B',
+          DEFAULT: '#050810',
+          secondary: '#0A0F1D',
+          tertiary: '#111827',
+          elevated: '#161F33',
         },
-        border: {
-          DEFAULT: '#1E293B',
-          subtle: '#334155',
-          highlight: '#475569',
-        },
-        primary: {
-          50: '#EEF2FF',
-          100: '#E0E7FF',
-          500: '#6366F1',
-          600: '#4F46E5',
-          700: '#4338CA',
-          DEFAULT: '#6366F1',
+        cyanAccent: {
+          DEFAULT: '#22d3ee',
+          glow: 'rgba(34,211,238,0.15)',
+          500: '#06b6d4',
+          400: '#22d3ee',
+          300: '#67e8f9',
         },
         status: {
           critical: {
@@ -44,11 +38,11 @@ export default {
             border: 'rgba(16, 185, 129, 0.3)',
           },
           info: {
-            DEFAULT: '#3B82F6',
-            bg: 'rgba(59, 130, 246, 0.1)',
-            border: 'rgba(59, 130, 246, 0.3)',
+            DEFAULT: '#22D3EE',
+            bg: 'rgba(34, 211, 238, 0.1)',
+            border: 'rgba(34, 211, 238, 0.3)',
           },
-          ai: {
+          skeptic: {
             DEFAULT: '#A855F7',
             bg: 'rgba(168, 85, 247, 0.12)',
             border: 'rgba(168, 85, 247, 0.35)',
@@ -56,13 +50,20 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+      },
+      boxShadow: {
+        'cyan-glow': '0 0 24px rgba(34, 211, 238, 0.15)',
+        'cyan-glow-lg': '0 0 32px rgba(34, 211, 238, 0.3)',
+        'red-glow': '0 0 24px rgba(239, 68, 68, 0.25)',
+        'emerald-glow': '0 0 24px rgba(16, 185, 129, 0.25)',
       },
       animation: {
         'pulse-glow': 'pulseGlow 2s infinite ease-in-out',
         'scan-line': 'scanLine 3s infinite linear',
         'fade-in': 'fadeIn 0.25s ease-out',
+        'ring-draw': 'ringDraw 1s cubic-bezier(0, 0, 0.2, 1) forwards',
       },
       keyframes: {
         pulseGlow: {
@@ -81,4 +82,4 @@ export default {
     },
   },
   plugins: [],
-}
+};
