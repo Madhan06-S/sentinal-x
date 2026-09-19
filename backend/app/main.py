@@ -67,6 +67,8 @@ cors_origins = [
     "http://127.0.0.1:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://sentinal-x-1.onrender.com",
+    "https://sentinal-x-nqm6.onrender.com",
     "https://sentinel-x-1.onrender.com",
     "https://sentinel-x-nqm6.onrender.com",
 ]

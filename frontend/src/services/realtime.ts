@@ -5,20 +5,24 @@ type EventCallback = (event: { type: string; payload: any }) => void;
 export type ConnectionStatus = 'LIVE' | 'RECONNECTING' | 'OFFLINE';
 type StatusCallback = (status: ConnectionStatus) => void;
 
-const PRODUCTION_BACKEND_HOST = 'sentinel-x-nqm6.onrender.com';
+const PRODUCTION_BACKEND_HOST = 'sentinal-x-nqm6.onrender.com';
 
 export const getWebSocketUrl = (): string => {
   const envWs = import.meta.env.VITE_WS_URL;
   if (envWs && envWs.trim()) {
     let rawWs = envWs.trim();
-    // Fix: If VITE_WS_URL incorrectly targets frontend host or localhost in production
+    // Fix: If VITE_WS_URL incorrectly targets frontend host or wrong backend host in production
     if (
+      rawWs.includes('sentinal-x-1.onrender.com') ||
       rawWs.includes('sentinel-x-1.onrender.com') ||
+      rawWs.includes('sentinel-x-nqm6.onrender.com') ||
       rawWs.includes('localhost') ||
       rawWs.includes('127.0.0.1')
     ) {
       rawWs = rawWs
+        .replace('sentinal-x-1.onrender.com', PRODUCTION_BACKEND_HOST)
         .replace('sentinel-x-1.onrender.com', PRODUCTION_BACKEND_HOST)
+        .replace('sentinel-x-nqm6.onrender.com', PRODUCTION_BACKEND_HOST)
         .replace('ws://localhost:8000', `wss://${PRODUCTION_BACKEND_HOST}`)
         .replace('ws://127.0.0.1:8000', `wss://${PRODUCTION_BACKEND_HOST}`);
     }

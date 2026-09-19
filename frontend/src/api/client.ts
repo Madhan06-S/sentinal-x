@@ -1,19 +1,23 @@
 import axios from 'axios';
 
-const PRODUCTION_BACKEND_HOST = 'sentinel-x-nqm6.onrender.com';
+const PRODUCTION_BACKEND_HOST = 'sentinal-x-nqm6.onrender.com';
 
 const getApiBaseUrl = (): string => {
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
   let rawUrl = envUrl && envUrl.trim() ? envUrl.trim() : `https://${PRODUCTION_BACKEND_HOST}`;
 
-  // Automatically rewrite frontend host or localhost references to backend host
+  // Automatically rewrite frontend host or wrong backend host references to actual backend host
   if (
+    rawUrl.includes('sentinal-x-1.onrender.com') ||
     rawUrl.includes('sentinel-x-1.onrender.com') ||
+    rawUrl.includes('sentinel-x-nqm6.onrender.com') ||
     rawUrl.includes('localhost') ||
     rawUrl.includes('127.0.0.1')
   ) {
     rawUrl = rawUrl
+      .replace('sentinal-x-1.onrender.com', PRODUCTION_BACKEND_HOST)
       .replace('sentinel-x-1.onrender.com', PRODUCTION_BACKEND_HOST)
+      .replace('sentinel-x-nqm6.onrender.com', PRODUCTION_BACKEND_HOST)
       .replace('http://localhost:8000', `https://${PRODUCTION_BACKEND_HOST}`)
       .replace('http://127.0.0.1:8000', `https://${PRODUCTION_BACKEND_HOST}`);
   }
