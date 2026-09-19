@@ -58,7 +58,7 @@ const BlastRadiusNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
   const isRoot = nodeData?.isRoot === true;
 
   const ringStyles: Record<number, string> = {
-    0: 'border-l-4 border-l-red-600 border-red-200 bg-red-50/70 text-red-950 font-bold ring-2 ring-red-500/20',
+    0: 'border-2 border-red-600 bg-red-50/90 text-red-950 font-bold ring-4 ring-red-500/20 shadow-md',
     1: 'border-l-4 border-l-red-500 border-red-200 bg-white text-slate-900',
     2: 'border-l-4 border-l-amber-500 border-amber-200 bg-white text-slate-900',
     3: 'border-l-4 border-l-purple-500 border-purple-200 bg-white text-slate-900',
@@ -75,12 +75,16 @@ const BlastRadiusNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
     <NodeErrorBoundary>
       <div
         className={clsx(
-          'px-3.5 py-2.5 rounded-xl border bg-white min-w-[180px] max-w-[220px] shadow-card hover:shadow-card-hover transition-all duration-150 font-sans',
+          'px-3.5 py-2.5 rounded-xl border bg-white min-w-[200px] max-w-[240px] shadow-card hover:shadow-card-hover transition-all duration-150 font-sans relative',
           ringStyles[isRoot ? 0 : ring] || 'border-[#E5E9F0] bg-white text-slate-900',
           selected && 'ring-2 ring-blue-600 scale-[1.02]'
         )}
       >
-        <Handle type="target" position={Position.Left} className="!bg-blue-600 !w-2 !h-2" />
+        <Handle type="target" position={Position.Left} id="target-left" className="!bg-blue-600 !w-2 !h-2" />
+        <Handle type="target" position={Position.Top} id="target-top" className="!bg-blue-600 !w-2 !h-2" />
+        <Handle type="target" position={Position.Right} id="target-right" className="!bg-blue-600 !w-2 !h-2" />
+        <Handle type="target" position={Position.Bottom} id="target-bottom" className="!bg-blue-600 !w-2 !h-2" />
+
         <div className="flex items-start justify-between gap-1.5">
           <div className="min-w-0">
             <span className="font-mono text-[12px] font-bold text-slate-900 block truncate leading-tight">
@@ -102,7 +106,11 @@ const BlastRadiusNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
             {impact}
           </p>
         )}
-        <Handle type="source" position={Position.Right} className="!bg-blue-600 !w-2 !h-2" />
+
+        <Handle type="source" position={Position.Left} id="source-left" className="!bg-blue-600 !w-2 !h-2" />
+        <Handle type="source" position={Position.Top} id="source-top" className="!bg-blue-600 !w-2 !h-2" />
+        <Handle type="source" position={Position.Right} id="source-right" className="!bg-blue-600 !w-2 !h-2" />
+        <Handle type="source" position={Position.Bottom} id="source-bottom" className="!bg-blue-600 !w-2 !h-2" />
       </div>
     </NodeErrorBoundary>
   );
@@ -121,7 +129,7 @@ const BlastRadiusCanvas: React.FC<RootCauseGraphInnerProps> = ({ incidentId, dat
   const [selectedNodeData, setSelectedNodeData] = useState<Record<string, any> | null>(null);
   const nodeTypes = useMemo(() => ({ customRCA: BlastRadiusNodeComponent }), []);
 
-  // Compute Layout: Center at (0, 0), Ring 1 at 160px, Ring 2 at 300px, Ring 3 at 440px
+  // Compute Layout: Root at (0, 0), Ring 1 at 260px, Ring 2 at 480px, Ring 3 at 700px
   const { nodes, edges, counts } = useMemo(() => {
     if (!data) return { nodes: [], edges: [], counts: { r1: 0, r2: 0, r3: 0 } };
 
@@ -133,7 +141,7 @@ const BlastRadiusCanvas: React.FC<RootCauseGraphInnerProps> = ({ incidentId, dat
     const computedNodes: any[] = [];
     const computedEdges: any[] = [];
 
-    // Root Cause Node at Center
+    // Root Cause Node at Center (0, 0)
     computedNodes.push({
       id: 'node-root',
       type: 'customRCA',
@@ -147,7 +155,7 @@ const BlastRadiusCanvas: React.FC<RootCauseGraphInnerProps> = ({ incidentId, dat
       },
     });
 
-    // Helper to position ring nodes in a circle
+    // Helper to position ring nodes in a circle without collision
     const placeRing = (items: BlastNode[], ringNum: number, radius: number, angleOffset: number = 0) => {
       const count = items.length;
       items.forEach((item, idx) => {
@@ -155,6 +163,22 @@ const BlastRadiusCanvas: React.FC<RootCauseGraphInnerProps> = ({ incidentId, dat
         const x = Math.round(radius * Math.cos(angle));
         const y = Math.round(radius * Math.sin(angle));
         const nodeId = `node-r${ringNum}-${idx}`;
+
+        // Select optimal handle based on angle quadrant
+        let targetHandle = 'target-left';
+        let sourceHandle = 'source-right';
+
+        const normAngle = (angle + 2 * Math.PI) % (2 * Math.PI);
+        if (normAngle >= Math.PI / 4 && normAngle < (3 * Math.PI) / 4) {
+          targetHandle = 'target-top';
+          sourceHandle = 'source-bottom';
+        } else if (normAngle >= (3 * Math.PI) / 4 && normAngle < (5 * Math.PI) / 4) {
+          targetHandle = 'target-right';
+          sourceHandle = 'source-left';
+        } else if (normAngle >= (5 * Math.PI) / 4 && normAngle < (7 * Math.PI) / 4) {
+          targetHandle = 'target-bottom';
+          sourceHandle = 'source-top';
+        }
 
         computedNodes.push({
           id: nodeId,
@@ -170,11 +194,13 @@ const BlastRadiusCanvas: React.FC<RootCauseGraphInnerProps> = ({ incidentId, dat
         });
 
         // Edge connect root or inner ring
-        const sourceId = ringNum === 1 ? 'node-root' : `node-r${ringNum - 1}-${idx % Math.max(1, ringNum === 2 ? ring1.length : ring2.length)}`;
+        const parentId = ringNum === 1 ? 'node-root' : `node-r${ringNum - 1}-${idx % Math.max(1, ringNum === 2 ? ring1.length : ring2.length)}`;
         computedEdges.push({
-          id: `edge-${sourceId}-${nodeId}`,
-          source: sourceId,
+          id: `edge-${parentId}-${nodeId}`,
+          source: parentId,
           target: nodeId,
+          sourceHandle: sourceHandle,
+          targetHandle: targetHandle,
           animated: ringNum < 3,
           style: {
             stroke: ringNum === 1 ? '#DC2626' : ringNum === 2 ? '#D97706' : '#7C3AED',
@@ -185,9 +211,9 @@ const BlastRadiusCanvas: React.FC<RootCauseGraphInnerProps> = ({ incidentId, dat
       });
     };
 
-    placeRing(ring1, 1, 160, 0);
-    placeRing(ring2, 2, 300, Math.PI / 4);
-    placeRing(ring3, 3, 440, Math.PI / 6);
+    placeRing(ring1, 1, 260, 0);
+    placeRing(ring2, 2, 480, Math.PI / 4);
+    placeRing(ring3, 3, 700, Math.PI / 6);
 
     return {
       nodes: computedNodes,
@@ -198,9 +224,10 @@ const BlastRadiusCanvas: React.FC<RootCauseGraphInnerProps> = ({ incidentId, dat
 
   useEffect(() => {
     if (nodes.length > 0) {
-      setTimeout(() => {
-        fitView({ padding: 0.25, duration: 300 });
-      }, 50);
+      const timer = setTimeout(() => {
+        fitView({ padding: 0.2, duration: 400 });
+      }, 80);
+      return () => clearTimeout(timer);
     }
   }, [nodes.length, fitView]);
 
@@ -229,26 +256,14 @@ const BlastRadiusCanvas: React.FC<RootCauseGraphInnerProps> = ({ incidentId, dat
 
   return (
     <div className="h-full w-full relative rounded-xl overflow-hidden border border-[#E5E9F0] bg-[#F8FAFC]">
-      {/* Concentric SVG Dashed Ring Circles Background */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" style={{ overflow: 'visible' }}>
-        <g transform="translate(500, 250)">
-          {/* Ring 1 Circle (160px) */}
-          <circle r="160" fill="none" stroke="#DC2626" strokeWidth="1.5" strokeDasharray="6 6" opacity="0.4" />
-          {/* Ring 2 Circle (300px) */}
-          <circle r="300" fill="none" stroke="#D97706" strokeWidth="1.5" strokeDasharray="6 6" opacity="0.4" />
-          {/* Ring 3 Circle (440px) */}
-          <circle r="440" fill="none" stroke="#7C3AED" strokeWidth="1.5" strokeDasharray="6 6" opacity="0.3" />
-        </g>
-      </svg>
-
       {/* Top-Right Legend Box */}
-      <div className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur-xs p-2.5 rounded-lg border border-[#E5E9F0] shadow-card font-sans text-[11px] space-y-1">
+      <div className="absolute top-3 right-3 z-10 bg-white/95 backdrop-blur-xs p-2.5 rounded-lg border border-[#E5E9F0] shadow-card font-sans text-[11px] space-y-1">
         <div className="font-mono text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
           Blast Radius Topology
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-red-600 inline-block" />
-          <span className="font-mono text-slate-700">Ring 1 · {counts.r1} Direct Direct Deps</span>
+          <span className="font-mono text-slate-700">Ring 1 · {counts.r1} Direct Deps</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-amber-600 inline-block" />
@@ -265,10 +280,10 @@ const BlastRadiusCanvas: React.FC<RootCauseGraphInnerProps> = ({ incidentId, dat
         edges={edges}
         nodeTypes={nodeTypes}
         onNodeClick={(_, node) => setSelectedNodeData(node.data as Record<string, any>)}
-        nodesDraggable={false}
+        nodesDraggable={true}
         fitView
       >
-        <Background color="#EDF1F7" gap={20} size={1} />
+        <Background color="#EDF1F7" gap={24} size={1} />
         <Controls />
       </ReactFlow>
 

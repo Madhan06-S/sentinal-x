@@ -28,25 +28,36 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { ResponsiveContainer, ComposedChart, Line, ReferenceLine, XAxis, YAxis, Tooltip } from 'recharts';
 
+import { useIncidents } from '../../hooks/useIncidents';
+
 interface IncidentSlideOverProps {
   incident: Incident;
   onClose: () => void;
 }
 
-export const IncidentSlideOver: React.FC<IncidentSlideOverProps> = ({ incident, onClose }) => {
+export const IncidentSlideOver: React.FC<IncidentSlideOverProps> = ({ incident: initialIncident, onClose }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'reasoning' | 'blast_radius' | 'remediation'>('overview');
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [expandedRationale, setExpandedRationale] = useState<Record<string, boolean>>({});
 
   const queryClient = useQueryClient();
+  const { data: incidentsList } = useIncidents();
+
+  // Dynamically resolve live incident state from query cache so approvals update live
+  const incident = incidentsList?.find((i) => i.incident_id === initialIncident.incident_id) || initialIncident;
 
   const handleApprove = async () => {
     setIsApproving(true);
     try {
       await approveRemediation(incident.incident_id);
-      queryClient.invalidateQueries({ queryKey: ['incidents'] });
-      queryClient.invalidateQueries({ queryKey: ['incident', incident.incident_id] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['incidents'] }),
+        queryClient.invalidateQueries({ queryKey: ['incident', incident.incident_id] }),
+        queryClient.invalidateQueries({ queryKey: ['auditLogs'] }),
+        queryClient.invalidateQueries({ queryKey: ['systemHealth'] }),
+        queryClient.invalidateQueries({ queryKey: ['services'] }),
+      ]);
     } catch (err) {
       console.error('Approve failed:', err);
     } finally {
@@ -58,8 +69,11 @@ export const IncidentSlideOver: React.FC<IncidentSlideOverProps> = ({ incident, 
     setIsRejecting(true);
     try {
       await rejectRemediation(incident.incident_id, 'Rejected by SRE operator from Sentinel-X Command Center');
-      queryClient.invalidateQueries({ queryKey: ['incidents'] });
-      queryClient.invalidateQueries({ queryKey: ['incident', incident.incident_id] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['incidents'] }),
+        queryClient.invalidateQueries({ queryKey: ['incident', incident.incident_id] }),
+        queryClient.invalidateQueries({ queryKey: ['auditLogs'] }),
+      ]);
     } catch (err) {
       console.error('Reject failed:', err);
     } finally {
