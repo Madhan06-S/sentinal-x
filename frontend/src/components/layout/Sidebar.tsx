@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
+  Layers,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useIncidents } from '../../hooks/useIncidents';
@@ -25,11 +26,12 @@ export const Sidebar: React.FC = () => {
 
   const navItems = [
     { label: 'Overview', path: '/', icon: LayoutDashboard },
+    { label: 'Architecture Spec', path: '/architecture', icon: Layers, highlight: true },
     { label: 'Incidents', path: '/incidents', icon: Flame, badge: activeCount > 0 ? activeCount : undefined },
     { label: 'Alerts', path: '/alerts', icon: AlertTriangle },
     { label: 'Services', path: '/services', icon: Server },
     { label: 'Deployments', path: '/deployments', icon: GitCommit },
-    { label: 'Copilot Insights', path: '/ai-analysis', icon: Sparkles, highlight: true },
+    { label: 'Copilot Insights', path: '/ai-analysis', icon: Sparkles },
     { label: 'Audit Logs', path: '/audit', icon: FileText },
   ];
 
