@@ -25,11 +25,14 @@ import { AutonomyLevelKey } from '../../services/autonomy';
 
 import { realtimeService, ConnectionStatus } from '../../services/realtime';
 
+import { useQueryClient } from '@tanstack/react-query';
+
 interface TopbarProps {
   systemStatus?: 'HEALTHY' | 'DEGRADED' | 'CRITICAL';
 }
 
 export const Topbar: React.FC<TopbarProps> = ({ systemStatus = 'HEALTHY' }) => {
+  const queryClient = useQueryClient();
   const [isSimulating, setIsSimulating] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -77,11 +80,19 @@ export const Topbar: React.FC<TopbarProps> = ({ systemStatus = 'HEALTHY' }) => {
     setIsSimulating(true);
     try {
       await startSimulation();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['incidents'] }),
+        queryClient.invalidateQueries({ queryKey: ['alerts'] }),
+        queryClient.invalidateQueries({ queryKey: ['systemHealth'] }),
+        queryClient.invalidateQueries({ queryKey: ['services'] }),
+        queryClient.invalidateQueries({ queryKey: ['auditLogs'] }),
+      ]);
       setIsFailureModalOpen(false);
+      navigate('/incidents');
     } catch (e) {
       console.error('Failed to inject controlled failure:', e);
     } finally {
-      setTimeout(() => setIsSimulating(false), 1500);
+      setTimeout(() => setIsSimulating(false), 1000);
     }
   };
 

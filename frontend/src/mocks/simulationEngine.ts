@@ -166,8 +166,6 @@ class SimulationEngine {
   }
 
   public async startLiveSimulation(): Promise<{ status: string; incident_id: string }> {
-    if (this.isSimulating) return { status: 'ALREADY_RUNNING', incident_id: 'INC-1042' };
-
     this.isSimulating = true;
     const simIncId = `INC-${Math.floor(1000 + Math.random() * 9000)}`;
 
