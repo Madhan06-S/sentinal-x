@@ -1,21 +1,34 @@
 import { simulationEngine } from '../mocks/simulationEngine';
-import { USE_MOCK_API } from '../api/client';
+import { USE_MOCK_API, BASE_URL } from '../api/client';
 
 type EventCallback = (event: { type: string; payload: any }) => void;
 export type ConnectionStatus = 'LIVE' | 'RECONNECTING' | 'OFFLINE';
 type StatusCallback = (status: ConnectionStatus) => void;
 
+const PRODUCTION_BACKEND_HOST = 'sentinel-x-nqm6.onrender.com';
+
 export const getWebSocketUrl = (): string => {
   const envWs = import.meta.env.VITE_WS_URL;
   if (envWs && envWs.trim()) {
-    const rawWs = envWs.trim();
+    let rawWs = envWs.trim();
+    // Fix: If VITE_WS_URL incorrectly targets frontend host or localhost in production
+    if (
+      rawWs.includes('sentinel-x-1.onrender.com') ||
+      rawWs.includes('localhost') ||
+      rawWs.includes('127.0.0.1')
+    ) {
+      rawWs = rawWs
+        .replace('sentinel-x-1.onrender.com', PRODUCTION_BACKEND_HOST)
+        .replace('ws://localhost:8000', `wss://${PRODUCTION_BACKEND_HOST}`)
+        .replace('ws://127.0.0.1:8000', `wss://${PRODUCTION_BACKEND_HOST}`);
+    }
     if (rawWs.startsWith('wss://') || rawWs.startsWith('ws://')) {
       return rawWs;
     }
   }
 
-  const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'https://sentinel-x-nqm6.onrender.com';
-  let wsUrl = apiUrl.trim();
+  // Derive WebSocket URL directly from REST BASE_URL (which targets https://sentinel-x-nqm6.onrender.com/api/v1)
+  let wsUrl = BASE_URL.trim();
 
   if (wsUrl.startsWith('https://')) {
     wsUrl = wsUrl.replace('https://', 'wss://');
@@ -25,15 +38,16 @@ export const getWebSocketUrl = (): string => {
     wsUrl = `wss://${wsUrl}`;
   }
 
-  // Strip trailing /api/v1 or trailing slashes
-  wsUrl = wsUrl.replace(/\/api\/v1\/?$/, '');
   if (wsUrl.endsWith('/')) {
     wsUrl = wsUrl.slice(0, -1);
   }
 
-  if (!wsUrl.endsWith('/api/v1/ws') && !wsUrl.endsWith('/ws')) {
+  if (wsUrl.endsWith('/api/v1')) {
+    wsUrl = `${wsUrl}/ws`;
+  } else if (!wsUrl.endsWith('/api/v1/ws') && !wsUrl.endsWith('/ws')) {
     wsUrl = `${wsUrl}/api/v1/ws`;
   }
+
   return wsUrl;
 };
 
