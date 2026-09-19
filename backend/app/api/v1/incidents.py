@@ -29,6 +29,7 @@ from app.services.remediation_service import record_approval
 router = APIRouter()
 
 
+@router.get("", response_model=list[IncidentResponse])
 @router.get("/", response_model=list[IncidentResponse])
 async def list_incidents(
     skip: int = 0,

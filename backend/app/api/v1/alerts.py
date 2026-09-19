@@ -11,6 +11,7 @@ router = APIRouter()
 
 
 @router.post("", response_model=AlertResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=AlertResponse, status_code=status.HTTP_201_CREATED)
 async def create_alert(alert_in: AlertCreate, db: AsyncSession = Depends(get_db)):
     # Convert old AlertCreate to new NormalizedEvent format
     event_in = NormalizedEvent(
@@ -29,6 +30,7 @@ async def create_alert(alert_in: AlertCreate, db: AsyncSession = Depends(get_db)
 
 
 @router.get("", response_model=list[AlertResponse])
+@router.get("/", response_model=list[AlertResponse])
 async def list_alerts(
     skip: int = 0,
     limit: int = 100,

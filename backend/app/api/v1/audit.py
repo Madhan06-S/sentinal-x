@@ -8,6 +8,7 @@ from app.schemas.schemas import AuditLogResponse
 router = APIRouter()
 
 
+@router.get("", response_model=list[AuditLogResponse])
 @router.get("/", response_model=list[AuditLogResponse])
 async def list_audit_logs(
     skip: int = 0,
