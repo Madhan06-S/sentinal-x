@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card } from '../ui/Card';
 import { clsx } from 'clsx';
 
 interface MetricCardProps {
@@ -19,45 +18,41 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   icon,
   variant = 'default',
 }) => {
-  const borderColors = {
-    default: 'hover:border-slate-700',
-    critical: 'border-red-900/50 bg-red-950/20 shadow-[0_0_20px_rgba(239,68,68,0.08)]',
-    warning: 'border-amber-900/50 bg-amber-950/20 shadow-[0_0_20px_rgba(245,158,11,0.08)]',
-    healthy: 'border-emerald-900/50 bg-emerald-950/20 shadow-[0_0_20px_rgba(16,185,129,0.08)]',
-    ai: 'border-purple-900/50 bg-purple-950/20 shadow-[0_0_20px_rgba(168,85,247,0.12)]',
-  };
-
-  const iconColors = {
-    default: 'text-indigo-400 bg-indigo-950/60 border-indigo-800/40',
-    critical: 'text-red-400 bg-red-950/60 border-red-800/40',
-    warning: 'text-amber-400 bg-amber-950/60 border-amber-800/40',
-    healthy: 'text-emerald-400 bg-emerald-950/60 border-emerald-800/40',
-    ai: 'text-purple-300 bg-purple-950/60 border-purple-800/40',
+  const iconContainerStyles = {
+    default: 'bg-blue-50 text-blue-600 border border-blue-100',
+    critical: 'bg-red-50 text-red-600 border border-red-100',
+    warning: 'bg-amber-50 text-amber-600 border border-amber-100',
+    healthy: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    ai: 'bg-indigo-50 text-indigo-600 border border-indigo-100',
   };
 
   return (
-    <Card className={clsx('transition-all duration-200', borderColors[variant])}>
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-slate-400 uppercase tracking-wider font-mono">
+    <div className="bg-white border border-[#E5E9F0] rounded-[10px] p-5 shadow-card hover:shadow-card-hover transition-all duration-150 flex flex-col justify-between font-sans">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-sans">
           {title}
         </span>
-        <div className={clsx('w-9 h-9 rounded-lg border flex items-center justify-center', iconColors[variant])}>
+        <div className={clsx('w-9 h-9 rounded-lg flex items-center justify-center shrink-0', iconContainerStyles[variant])}>
           {icon}
         </div>
       </div>
-      <div className="mt-4 flex items-baseline justify-between">
-        <span className="text-2xl font-bold font-mono text-slate-100 tracking-tight">{value}</span>
+      <div className="mt-3 flex items-baseline justify-between gap-2">
+        <span className="text-[28px] font-bold text-slate-900 font-sans tracking-tight leading-none">
+          {value}
+        </span>
         {change && (
           <span
             className={clsx(
-              'text-xs font-mono font-medium px-1.5 py-0.5 rounded',
-              isNegativeTrend ? 'bg-red-950 text-red-400' : 'bg-emerald-950 text-emerald-400'
+              'text-[11px] font-semibold px-2 py-0.5 rounded-full font-mono shrink-0',
+              isNegativeTrend
+                ? 'bg-red-50 text-red-700 border border-red-200'
+                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
             )}
           >
-            {change}
+            {isNegativeTrend ? '▼' : '▲'} {change}
           </span>
         )}
       </div>
-    </Card>
+    </div>
   );
 };

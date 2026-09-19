@@ -1,5 +1,4 @@
 import React from 'react';
-import { SpotlightCard } from './SpotlightCard';
 import { cn } from '../../lib/utils';
 
 interface CardProps {
@@ -18,24 +17,33 @@ export const Card: React.FC<CardProps> = ({
   title,
   subtitle,
   action,
+  hoverEffect = true,
   onClick,
 }) => {
   return (
-    <SpotlightCard className={cn('p-5', className)} onClick={onClick}>
+    <div
+      onClick={onClick}
+      className={cn(
+        'bg-white border border-[#E5E9F0] rounded-[10px] shadow-card p-5 transition-all duration-150',
+        hoverEffect && 'hover:shadow-card-hover hover:border-[#D5DBE5]',
+        onClick && 'cursor-pointer',
+        className
+      )}
+    >
       {(title || action) && (
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-zinc-800/80">
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E9F0]">
           <div>
             {typeof title === 'string' ? (
-              <h3 className="text-base font-semibold text-zinc-100 tracking-tight">{title}</h3>
+              <h3 className="text-[15px] font-semibold text-slate-900 tracking-tight font-sans">{title}</h3>
             ) : (
               title
             )}
-            {subtitle && <p className="text-xs text-zinc-400 mt-0.5 font-sans">{subtitle}</p>}
+            {subtitle && <p className="text-[12px] text-slate-500 mt-0.5 font-sans">{subtitle}</p>}
           </div>
-          {action && <div>{action}</div>}
+          {action && <div className="shrink-0">{action}</div>}
         </div>
       )}
       {children}
-    </SpotlightCard>
+    </div>
   );
 };

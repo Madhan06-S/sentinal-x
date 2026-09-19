@@ -33,15 +33,23 @@ async def list_deployments(db: AsyncSession, service_id: str | None = None) -> l
     return list(result.scalars().all())
 
 
-async def recent_deployments(db: AsyncSession, minutes: int = 60) -> list[Deployment]:
-    cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
+async def recent_deployments(db: AsyncSession, minutes: int = 1440) -> list[Deployment]:
     result = await db.execute(
         select(Deployment)
         .options(selectinload(Deployment.service))
-        .where(Deployment.deployed_at >= cutoff)
         .order_by(Deployment.deployed_at.desc())
     )
-    return list(result.scalars().all())
+    deployments = list(result.scalars().all())
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
+    filtered = []
+    for d in deployments:
+        dep_at = d.deployed_at
+        if dep_at is not None:
+            if dep_at.tzinfo is None:
+                dep_at = dep_at.replace(tzinfo=timezone.utc)
+            if dep_at >= cutoff:
+                filtered.append(d)
+    return filtered
 
 
 async def service_graph(db: AsyncSession) -> tuple[list[Service], list[ServiceDependency]]:

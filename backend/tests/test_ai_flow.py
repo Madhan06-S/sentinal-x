@@ -32,12 +32,25 @@ async def test_full_ai_remediation_flow():
     groq_service.analyze_with_groq = mock_analyze_with_groq
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", follow_redirects=True) as client:
-        # 1. Ingest an alert that creates an incident
+        # 1a. Ingest a deployment event
+        deploy_payload = {
+            "event_id": f"evt_dep_{uuid.uuid4().hex[:8]}",
+            "source": "github",
+            "service": "payment-service",
+            "event_type": "deployment",
+            "severity": Severity.INFO,
+            "message": "Deployed v2.4.1",
+            "environment": "production",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        await client.post("/api/v1/events", json=deploy_payload)
+
+        # 1b. Ingest an error event that creates an incident
         payload = {
             "event_id": f"evt_{uuid.uuid4().hex[:8]}",
             "source": "prometheus",
-            "service": f"payment-service-{uuid.uuid4().hex[:6]}",
-            "event_type": "deployment",
+            "service": "payment-service",
+            "event_type": "database_alert",
             "error_code": "DB-104",
             "severity": Severity.CRITICAL,
             "message": "Memory spiked to 94% following deployment v2.4.1",
@@ -55,12 +68,17 @@ async def test_full_ai_remediation_flow():
         inv_resp = await client.post(f"/api/v1/incidents/{incident_id}/investigate")
         assert inv_resp.status_code == 200
         # For testing, we run the pipeline synchronously
+        from sqlalchemy import select
+        from app.models.models import Incident
         from app.core.database import AsyncSessionLocal
         from app.services.ai_service import run_ai_analysis_pipeline
         from app.services.remediation_service import execute_remediation, verify_remediation, record_approval
         
         async with AsyncSessionLocal() as db:
-            incident = await run_ai_analysis_pipeline(db, incident_id)
+            result = await db.execute(select(Incident).where(Incident.id == incident_id))
+            incident = result.scalars().first()
+            if not incident or incident.recommended_action != "ROLLBACK_DEPLOYMENT":
+                incident = await run_ai_analysis_pipeline(db, incident_id)
             assert incident.recommended_action == "ROLLBACK_DEPLOYMENT"
             assert incident.status == "AWAITING_APPROVAL" # Because ROLLBACK is HIGH risk
             

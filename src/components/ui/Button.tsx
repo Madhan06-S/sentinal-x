@@ -6,7 +6,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'outline' | 'ghost' | 'glow';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
-  icon?: React.ReactNode;
+  icon?: React.ReactNode | React.ComponentType<{ className?: string }>;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -19,22 +19,29 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
+  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-sans select-none';
 
   const variants = {
-    primary: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 active:scale-[0.98]',
-    secondary: 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700',
-    danger: 'bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-600/20 active:scale-[0.98]',
-    success: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 active:scale-[0.98]',
-    outline: 'border border-slate-700 hover:bg-slate-800 text-slate-300',
-    ghost: 'hover:bg-slate-800/80 text-slate-400 hover:text-slate-200',
-    glow: 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_28px_rgba(168,85,247,0.6)] active:scale-[0.98]',
+    primary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs active:scale-[0.99]',
+    secondary: 'bg-white border border-[#E5E9F0] hover:bg-slate-50 text-slate-800 shadow-xs active:scale-[0.99]',
+    danger: 'bg-red-600 hover:bg-red-700 text-white shadow-xs active:scale-[0.99]',
+    success: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs active:scale-[0.99]',
+    outline: 'border border-[#E5E9F0] hover:bg-slate-50 text-slate-700 active:scale-[0.99]',
+    ghost: 'border border-[#E5E9F0] bg-white hover:bg-[#F1F4F9] text-slate-700 active:scale-[0.99]',
+    glow: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm active:scale-[0.99]',
   };
 
   const sizes = {
-    sm: 'text-xs px-3 py-1.5 gap-1.5',
-    md: 'text-sm px-4 py-2 gap-2',
-    lg: 'text-base px-5 py-2.5 gap-2.5',
+    sm: 'text-xs px-2.5 py-1.5 gap-1.5',
+    md: 'text-[13px] px-3.5 py-2 gap-2',
+    lg: 'text-sm px-4 py-2.5 gap-2',
+  };
+
+  const renderIcon = () => {
+    if (!icon) return null;
+    if (React.isValidElement(icon)) return icon;
+    const IconComp = icon as React.ComponentType<{ className?: string }>;
+    return <IconComp className="w-3.5 h-3.5 shrink-0" />;
   };
 
   return (
@@ -43,7 +50,7 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={disabled || isLoading}
       {...props}
     >
-      {isLoading ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : icon}
+      {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-current" /> : renderIcon()}
       {children}
     </button>
   );

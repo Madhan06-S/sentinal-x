@@ -1,61 +1,59 @@
 import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Line } from 'recharts';
 import { Card } from '../ui/Card';
 
 const data = [
-  { time: '12:00', incidents: 1, alerts: 12 },
-  { time: '12:10', incidents: 0, alerts: 8 },
-  { time: '12:20', incidents: 1, alerts: 15 },
-  { time: '12:30', incidents: 2, alerts: 24 },
-  { time: '12:40', incidents: 4, alerts: 47 },
-  { time: '12:42', incidents: 3, alerts: 32 },
-  { time: '12:45', incidents: 1, alerts: 18 },
+  { time: '12:00', alerts: 12, errorRate: 0.1 },
+  { time: '12:10', alerts: 8, errorRate: 0.1 },
+  { time: '12:20', alerts: 15, errorRate: 0.3 },
+  { time: '12:30', alerts: 24, errorRate: 1.2 },
+  { time: '12:40', alerts: 47, errorRate: 4.8 },
+  { time: '12:42', alerts: 32, errorRate: 3.1 },
+  { time: '12:45', alerts: 18, errorRate: 1.0 },
+  { time: '12:50', alerts: 9, errorRate: 0.2 },
 ];
 
 export const IncidentVolumeChart: React.FC = () => {
   return (
-    <Card title="Incident & Telemetry Volume" subtitle="Real-time incident & alert activity timeline">
+    <Card title="Telemetry Stream & SLA Metrics" subtitle="Real-time alert volume and error rate trends">
       <div className="h-64 w-full pt-2">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
-              <linearGradient id="alertGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#6366F1" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#6366F1" stopOpacity={0.0} />
-              </linearGradient>
-              <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#EF4444" stopOpacity={0.6} />
-                <stop offset="95%" stopColor="#EF4444" stopOpacity={0.0} />
+              <linearGradient id="alertGradLight" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#2563EB" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#2563EB" stopOpacity={0.01} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="time" stroke="#475569" fontSize={11} tickLine={false} />
-            <YAxis stroke="#475569" fontSize={11} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#EDF1F7" vertical={false} />
+            <XAxis dataKey="time" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#0F172A',
-                borderColor: '#1E293B',
+                backgroundColor: '#FFFFFF',
+                borderColor: '#E5E9F0',
                 borderRadius: '8px',
                 fontSize: '12px',
-                color: '#F8FAFC',
+                color: '#0F172A',
+                boxShadow: '0 8px 24px rgba(15,23,42,0.12)',
               }}
             />
             <Area
               type="monotone"
               dataKey="alerts"
-              stroke="#6366F1"
+              stroke="#2563EB"
               strokeWidth={2}
               fillOpacity={1}
-              fill="url(#alertGrad)"
-              name="Alerts / min"
+              fill="url(#alertGradLight)"
+              name="Alert Volume (events/min)"
             />
-            <Area
+            <Line
               type="monotone"
-              dataKey="incidents"
-              stroke="#EF4444"
+              dataKey="errorRate"
+              stroke="#475569"
               strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#incGrad)"
-              name="Incidents"
+              dot={{ r: 3, fill: '#475569' }}
+              name="Error Rate (%)"
             />
           </AreaChart>
         </ResponsiveContainer>

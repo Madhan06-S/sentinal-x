@@ -13,7 +13,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
-  LogOut,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useIncidents } from '../../hooks/useIncidents';
@@ -30,21 +29,21 @@ export const Sidebar: React.FC = () => {
     { label: 'Alerts', path: '/alerts', icon: AlertTriangle },
     { label: 'Services', path: '/services', icon: Server },
     { label: 'Deployments', path: '/deployments', icon: GitCommit },
-    { label: 'AI Analysis', path: '/incidents/INC-1042', icon: Sparkles, highlight: true },
+    { label: 'AI Analysis', path: '/ai-analysis', icon: Sparkles, highlight: true },
     { label: 'Audit Logs', path: '/audit', icon: FileText },
   ];
 
   return (
     <motion.aside
       initial={false}
-      animate={{ width: collapsed ? 80 : 250 }}
-      transition={{ duration: 0.25, ease: 'easeInOut' }}
-      className="relative flex h-full flex-col border-r border-zinc-800/90 bg-zinc-950 px-3 py-4 z-30 shrink-0 select-none"
+      animate={{ width: collapsed ? 76 : 240 }}
+      transition={{ duration: 0.2, ease: 'easeInOut' }}
+      className="relative flex h-full flex-col border-r border-[#E5E9F0] bg-white px-3 py-4 z-30 shrink-0 select-none shadow-xs font-sans"
     >
       {/* Brand Header */}
       <div className="mb-6 flex items-center px-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 shadow-[0_0_16px_rgba(99,102,241,0.4)] shrink-0">
-          <Shield className="h-5 w-5 text-white" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 shadow-xs shrink-0 text-white">
+          <Shield className="h-5 w-5" />
         </div>
         {!collapsed && (
           <motion.div
@@ -52,10 +51,10 @@ export const Sidebar: React.FC = () => {
             animate={{ opacity: 1 }}
             className="ml-3 flex flex-col min-w-0"
           >
-            <span className="text-base font-bold tracking-tight text-white font-mono uppercase">
-              AEGIS <span className="text-indigo-400 text-xs">v2.0</span>
+            <span className="text-base font-bold tracking-tight text-slate-900 font-mono">
+              AEGIS <span className="text-blue-600 text-xs font-sans font-semibold">2.0</span>
             </span>
-            <span className="text-[10px] text-zinc-400 font-sans leading-none">Incident Command</span>
+            <span className="text-[11px] text-slate-500 leading-none">AIOps Command</span>
           </motion.div>
         )}
       </div>
@@ -71,33 +70,25 @@ export const Sidebar: React.FC = () => {
             {({ isActive }) => (
               <div
                 className={cn(
-                  'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 cursor-pointer',
+                  'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 cursor-pointer',
                   isActive
-                    ? 'bg-zinc-800 text-white font-semibold'
+                    ? 'bg-[#F1F4F9] text-blue-600 font-semibold shadow-2xs'
                     : item.highlight
-                    ? 'text-purple-400 hover:bg-purple-950/40 hover:text-purple-300'
-                    : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'
+                    ? 'text-indigo-600 hover:bg-indigo-50/60 hover:text-indigo-700'
+                    : 'text-slate-600 hover:bg-[#F8FAFC] hover:text-slate-900'
                 )}
               >
-                <item.icon className={cn('h-4 w-4 shrink-0', item.highlight && 'text-purple-400 animate-pulse')} />
+                <item.icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-blue-600' : item.highlight ? 'text-indigo-600' : 'text-slate-500')} />
                 {!collapsed && <span className="truncate">{item.label}</span>}
-
-                {/* Active Indicator Pill */}
-                {isActive && !collapsed && (
-                  <motion.div
-                    layoutId="active-pill"
-                    className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]"
-                  />
-                )}
 
                 {/* Badge */}
                 {!collapsed && item.badge !== undefined && (
-                  <span className="ml-auto px-2 py-0.5 text-xs font-mono font-bold bg-red-500 text-white rounded-full">
+                  <span className="ml-auto px-2 py-0.5 text-[11px] font-mono font-bold bg-red-600 text-white rounded-full">
                     {item.badge}
                   </span>
                 )}
                 {collapsed && item.badge !== undefined && (
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-600 rounded-full" />
                 )}
               </div>
             )}
@@ -106,16 +97,16 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* Bottom Controls */}
-      <div className="mt-auto flex flex-col gap-1 pt-4 border-t border-zinc-800">
+      <div className="mt-auto flex flex-col gap-1 pt-4 border-t border-[#E5E9F0]">
         <NavLink to="/settings">
           {({ isActive }) => (
             <div
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200',
-                isActive && 'bg-zinc-800 text-white'
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors text-slate-600 hover:bg-[#F8FAFC] hover:text-slate-900',
+                isActive && 'bg-[#F1F4F9] text-blue-600 font-semibold'
               )}
             >
-              <Settings className="h-4 w-4 shrink-0" />
+              <Settings className="h-4 w-4 shrink-0 text-slate-500" />
               {!collapsed && <span>Settings</span>}
             </div>
           )}
@@ -123,12 +114,15 @@ export const Sidebar: React.FC = () => {
 
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="mt-2 flex h-8 w-full items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 text-zinc-400 hover:bg-zinc-800 transition-colors"
+          className="mt-2 flex h-8 w-full items-center justify-center rounded-lg border border-[#E5E9F0] bg-[#F8FAFC] text-slate-600 hover:bg-[#F1F4F9] hover:text-slate-900 transition-colors"
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />
           ) : (
-            <span className="text-xs font-mono">Collapse Sidebar</span>
+            <div className="flex items-center gap-1.5 text-[12px] font-medium">
+              <ChevronLeft className="h-3.5 w-3.5" />
+              <span>Collapse Sidebar</span>
+            </div>
           )}
         </button>
       </div>

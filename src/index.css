@@ -6,75 +6,74 @@
 
 @layer base {
   body {
-    background-color: #0B0F17;
-    color: #F3F4F6;
+    background-color: #F7F8FA;
+    color: #0F172A;
     font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
-/* Custom scrollbars */
+/* Custom scrollbars for light theme */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B0F17;
+  background: #F7F8FA;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
+  background: #CBD5E1;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #94A3B8;
 }
 
-/* React Flow Dark Canvas overrides */
+/* React Flow Light Canvas overrides */
 .react-flow__renderer {
-  background-color: #0F172A !important;
+  background-color: #F8FAFC !important;
 }
 
 .react-flow__background {
-  background-color: #0B0F17 !important;
+  background-color: #F7F8FA !important;
 }
 
 .react-flow__controls {
-  background: #111827 !important;
-  border: 1px solid #1E293B !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E5E9F0 !important;
   border-radius: 8px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
 }
 
 .react-flow__controls-button {
-  background: #1E293B !important;
-  border-bottom: 1px solid #334155 !important;
-  color: #94A3B8 !important;
-  fill: #94A3B8 !important;
+  background: #FFFFFF !important;
+  border-bottom: 1px solid #E5E9F0 !important;
+  color: #475569 !important;
+  fill: #475569 !important;
 }
 
 .react-flow__controls-button:hover {
-  background: #334155 !important;
-  color: #F8FAFC !important;
-  fill: #F8FAFC !important;
+  background: #F1F4F9 !important;
+  color: #0F172A !important;
+  fill: #0F172A !important;
 }
 
 .react-flow__minimap {
-  background-color: #111827 !important;
-  border: 1px solid #1E293B !important;
+  background-color: #FFFFFF !important;
+  border: 1px solid #E5E9F0 !important;
   border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
 }
 
-/* Glassmorphism utility */
-.glass-panel {
-  background: rgba(17, 24, 39, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(30, 41, 59, 0.8);
-}
-
-.glass-panel-hover {
+/* Light Surface Utility */
+.light-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E9F0;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
   transition: all 0.2s ease-in-out;
 }
-.glass-panel-hover:hover {
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.08);
+
+.light-card:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }

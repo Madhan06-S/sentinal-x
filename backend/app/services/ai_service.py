@@ -138,7 +138,7 @@ async def run_ai_analysis_pipeline(db: AsyncSession, incident_id: str) -> Incide
     all_incident_alerts = list(incident.alerts or [])
     incident_services = {a.service for a in alerts if a.service}
     has_deployments_event = any(a.alert_type == "deployment" or "deploy" in (a.message or "").lower() for a in all_incident_alerts)
-    all_deployments = await recent_deployments(db, minutes=180)
+    all_deployments = await recent_deployments(db, minutes=1440)
     matching_deployments = [
         d for d in all_deployments
         if (d.service_id in incident_services) or (d.service and d.service.name in incident_services)

@@ -1,12 +1,15 @@
+import json
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.models import Severity
 from app.schemas.schemas import AlertCreate, AlertResponse
 from app.services.alert_service import ingest_alert
 
 router = APIRouter()
+
 
 
 def _severity_from_text(value: str | None) -> Severity:
@@ -43,7 +46,19 @@ async def ingest_alertmanager(payload: dict, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/github", response_model=AlertResponse | dict)
-async def ingest_github(payload: dict, db: AsyncSession = Depends(get_db)):
+async def ingest_github(request: Request, db: AsyncSession = Depends(get_db)):
+    signature = request.headers.get("X-Hub-Signature-256")
+    payload_body = await request.body()
+    if signature or settings.GITHUB_WEBHOOK_SECRET:
+        from app.services.github_service import verify_signature
+        if not verify_signature(payload_body, signature or ""):
+            raise HTTPException(status_code=401, detail="Invalid signature")
+
+    try:
+        payload = json.loads(payload_body) if payload_body else {}
+    except Exception:
+        raise HTTPException(status_code=400, detail="Malformed JSON payload")
+
     deployment = payload.get("deployment") or payload.get("deployment_status") or {}
     environment = deployment.get("environment") or payload.get("environment") or "production"
     service = (
@@ -65,6 +80,7 @@ async def ingest_github(payload: dict, db: AsyncSession = Depends(get_db)):
         metadata=payload,
     )
     return await ingest_alert(db, alert)
+
 
 
 @router.post("/kubernetes", response_model=AlertResponse)

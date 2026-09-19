@@ -100,6 +100,7 @@ app.include_router(audit.router, prefix="/api/v1/audit", tags=["Audit"])
 app.include_router(simulation.router, prefix="/api/v1/simulation", tags=["Simulation"])
 app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
 app.include_router(websockets.router, prefix="/api/v1/ws", tags=["WebSockets"])
+app.include_router(websockets.router, prefix="/ws", tags=["WebSockets Alias"])
 app.include_router(github.router, prefix="/api/v1/integrations/github", tags=["Integrations"])
 
 from fastapi.responses import FileResponse

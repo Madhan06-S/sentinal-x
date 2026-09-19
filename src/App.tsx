@@ -10,6 +10,7 @@ import { IncidentDetailPage } from './pages/IncidentDetailPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { DeploymentsPage } from './pages/DeploymentsPage';
+import { AIAnalysisPage } from './pages/AIAnalysisPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useRealtime } from './hooks/useRealtime';
@@ -28,11 +29,11 @@ const AppContent: React.FC = () => {
   useRealtime();
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 flex flex-col font-sans selection:bg-indigo-600 selection:text-white">
-      <Topbar systemStatus="CRITICAL" activeIncidentCount={3} />
+    <div className="min-h-screen bg-[#F7F8FA] text-slate-900 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+      <Topbar systemStatus="HEALTHY" activeIncidentCount={0} />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-[#0B0F17]">
+        <main className="flex-1 overflow-y-auto bg-[#F7F8FA]">
           <Routes>
             <Route path="/" element={<OverviewPage />} />
             <Route path="/incidents" element={<IncidentsPage />} />
@@ -40,6 +41,7 @@ const AppContent: React.FC = () => {
             <Route path="/alerts" element={<AlertsPage />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/deployments" element={<DeploymentsPage />} />
+            <Route path="/ai-analysis" element={<AIAnalysisPage />} />
             <Route path="/audit" element={<AuditLogsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
