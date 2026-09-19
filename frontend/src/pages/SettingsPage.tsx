@@ -2,21 +2,60 @@ import React, { useState } from 'react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Server, Database, Sparkles, Shield, Bell, Cpu, Clock, AlertTriangle, Key, CheckCircle2, RefreshCw } from 'lucide-react';
-import { USE_MOCK_API } from '../api/client';
+import {
+  Building2,
+  SlidersHorizontal,
+  Shield,
+  Plug,
+  Key,
+  AlertTriangle,
+  Cpu,
+  Database,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Copy,
+  RefreshCw,
+} from 'lucide-react';
 import { Modal } from '../components/ui/Modal';
-import { StatusBadge } from '../components/ui/Badge';
+import { cn } from '../lib/utils';
+
+import { useAutonomy } from '../hooks/useAutonomy';
+
+type SettingsTab = 'workspace' | 'thresholds' | 'autonomy' | 'integrations' | 'api_keys' | 'danger';
 
 export const SettingsPage: React.FC = () => {
-  const [mockMode, setMockMode] = useState(USE_MOCK_API);
-  const [autonomyLevel, setAutonomyLevel] = useState<'L1' | 'L2' | 'L3' | 'L4'>('L3');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('workspace');
+  const { autonomyLevel, setAutonomyLevel, autonomyLevels } = useAutonomy();
   const [cpuThreshold, setCpuThreshold] = useState(85);
   const [memThreshold, setMemThreshold] = useState(80);
   const [latencyThreshold, setLatencyThreshold] = useState(250);
   const [errorRateThreshold, setErrorRateThreshold] = useState(2.0);
 
+  const [apiKey, setApiKey] = useState('sn_live_9f82d1c9a40b82f1e290a3c');
+  const [isCopied, setIsCopied] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+
+  const navItems = [
+    { id: 'workspace', label: 'Workspace', icon: Building2 },
+    { id: 'thresholds', label: 'Alert Thresholds', icon: SlidersHorizontal },
+    { id: 'autonomy', label: 'Autonomy Policy', icon: Shield },
+    { id: 'integrations', label: 'Integrations', icon: Plug },
+    { id: 'api_keys', label: 'API Keys', icon: Key },
+    { id: 'danger', label: 'Danger Zone', icon: AlertTriangle, danger: true },
+  ];
+
+  const handleCopyKey = () => {
+    navigator.clipboard.writeText(apiKey);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  const handleRegenerateKey = () => {
+    const newK = 'sn_live_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    setApiKey(newK);
+  };
 
   const handleResetDB = () => {
     setIsResetting(true);
@@ -26,220 +65,306 @@ export const SettingsPage: React.FC = () => {
     }, 1200);
   };
 
-  const autonomyLevels = [
-    {
-      level: 'L1',
-      title: 'L1: Advisory',
-      description: 'AI only suggests root causes and remediation scripts. Human must approve and manually copy commands.',
-    },
-    {
-      level: 'L2',
-      title: 'L2: Semi-Autonomous',
-      description: 'AI generates single-click execution proposals. Mandatory human approval for all actions.',
-    },
-    {
-      level: 'L3',
-      title: 'L3: Conditional Autonomy',
-      description: 'Auto-executes safe remediations (confidence > 95%). Mandates human signoff for high-risk actions.',
-    },
-    {
-      level: 'L4',
-      title: 'L4: Full Autonomy',
-      description: 'Full self-healing daemon. AI auto-executes, rolls back deployments, and scales resources automatically.',
-    },
+
+
+  const integrations = [
+    { name: 'Slack', status: 'CONNECTED', icon: '💬', desc: 'Real-time incident notifications & interactive approval blocks' },
+    { name: 'PagerDuty', status: 'CONNECTED', icon: '📟', desc: 'Bi-directional incident sync and on-call escalation routing' },
+    { name: 'Jira Software', status: 'CONNECTED', icon: '📋', desc: 'Automatic post-mortem ticket creation & SLA tracking' },
+    { name: 'Datadog', status: 'DISCONNECTED', icon: '🐶', desc: 'Telemetry metric stream & APM trace ingestion' },
+    { name: 'Amazon CloudWatch', status: 'CONNECTED', icon: '☁️', desc: 'AWS infrastructure metrics & log stream exporter' },
   ];
 
   return (
     <PageContainer
-      title="System Settings & Engine Governance"
-      description="Configure AI autonomy rules, anomaly detection thresholds, Groq LLM API integrations, and system simulation"
+      title="Settings & Platform Governance"
+      description="Manage workspace configuration, alert thresholds, agent autonomy safety bounds, and integrations"
     >
-      <div className="space-y-6 max-w-4xl">
-        {/* Autonomy Level Governance Cards */}
-        <Card title="AI Agent Autonomy Governance Level">
-          <div className="space-y-3 font-sans">
-            <p className="text-xs text-slate-600">
-              Select the global operating mode for Aegis AI self-healing agents.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {autonomyLevels.map((item) => (
-                <div
-                  key={item.level}
-                  onClick={() => setAutonomyLevel(item.level as any)}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                    autonomyLevel === item.level
-                      ? 'bg-blue-50/70 border-blue-600 shadow-sm ring-2 ring-blue-600/20'
-                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                  }`}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 font-sans">
+        {/* Left Sub-Nav (3 cols) */}
+        <div className="md:col-span-3 space-y-1">
+          <div className="bg-white border border-[#E5E9F0] rounded-xl p-2 shadow-card space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id as SettingsTab)}
+                  className={cn(
+                    'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all text-left cursor-pointer',
+                    activeTab === item.id
+                      ? item.danger
+                        ? 'bg-red-50 text-red-700 font-semibold'
+                        : 'bg-blue-50 text-blue-700 font-semibold'
+                      : item.danger
+                      ? 'text-red-600 hover:bg-red-50/50'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  )}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-mono text-xs font-bold text-slate-900">{item.title}</span>
-                    <input
-                      type="radio"
-                      name="autonomy"
-                      checked={autonomyLevel === item.level}
-                      onChange={() => setAutonomyLevel(item.level as any)}
-                      className="text-blue-600 focus:ring-blue-500"
-                    />
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">{item.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-
-        {/* Anomaly Detection Threshold Sliders */}
-        <Card title="Incident Trigger & Telemetry Thresholds">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 font-sans text-xs">
-            <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                  <Cpu className="w-4 h-4 text-blue-600" /> CPU Usage Threshold
-                </span>
-                <span className="font-mono font-bold text-blue-600 text-sm">{cpuThreshold}%</span>
-              </div>
-              <input
-                type="range"
-                min="50"
-                max="95"
-                value={cpuThreshold}
-                onChange={(e) => setCpuThreshold(Number(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <span className="text-[11px] text-slate-500 block">Trigger incident if sustained above limit for 60s</span>
-            </div>
-
-            <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                  <Database className="w-4 h-4 text-indigo-600" /> Memory Load Limit
-                </span>
-                <span className="font-mono font-bold text-indigo-600 text-sm">{memThreshold}%</span>
-              </div>
-              <input
-                type="range"
-                min="50"
-                max="95"
-                value={memThreshold}
-                onChange={(e) => setMemThreshold(Number(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-              />
-              <span className="text-[11px] text-slate-500 block">Trigger heap dump alert on breach</span>
-            </div>
-
-            <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-amber-600" /> p99 Latency Limit
-                </span>
-                <span className="font-mono font-bold text-amber-600 text-sm">{latencyThreshold}ms</span>
-              </div>
-              <input
-                type="range"
-                min="100"
-                max="1000"
-                step="50"
-                value={latencyThreshold}
-                onChange={(e) => setLatencyThreshold(Number(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
-              />
-              <span className="text-[11px] text-slate-500 block">Maximum acceptable response delay</span>
-            </div>
-
-            <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-red-600" /> Error Rate Tolerance
-                </span>
-                <span className="font-mono font-bold text-red-600 text-sm">{errorRateThreshold}%</span>
-              </div>
-              <input
-                type="range"
-                min="0.5"
-                max="10"
-                step="0.5"
-                value={errorRateThreshold}
-                onChange={(e) => setErrorRateThreshold(Number(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-red-600"
-              />
-              <span className="text-[11px] text-slate-500 block">HTTP 5xx error rate trigger limit</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Backend & LLM Integrations */}
-        <Card title="Backend API & Groq LLM Engine Status">
-          <div className="space-y-4 font-mono text-xs">
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">Active Execution Environment:</span>
-                <StatusBadge status={mockMode ? 'warning' : 'success'} text={mockMode ? 'Interactive Demo (Mock Mode)' : 'Live FastAPI Backend connected'} />
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">FastAPI REST Server:</span>
-                <code className="text-blue-600 bg-white px-2 py-0.5 rounded border border-slate-200 font-bold">
-                  {import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1'}
-                </code>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">WebSocket Event Stream:</span>
-                <code className="text-blue-600 bg-white px-2 py-0.5 rounded border border-slate-200 font-bold">
-                  {import.meta.env.VITE_WS_URL || 'ws://127.0.0.1:8000/ws'}
-                </code>
-              </div>
-              <div className="flex justify-between items-center pt-2 border-t border-slate-200">
-                <span className="text-slate-600 flex items-center gap-1">
-                  <Key className="w-3.5 h-3.5 text-purple-600" /> Groq AI Model:
-                </span>
-                <span className="text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded border border-purple-200 flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> openai/gpt-oss-120b (Configured • gsk_****)
-                </span>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Danger Zone Card */}
-        <div className="bg-red-50/60 rounded-xl border border-red-200 p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-mono text-sm font-bold text-red-900 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-600" /> Danger Zone: Reset Simulation State
-              </h3>
-              <p className="text-xs text-red-700 font-sans mt-0.5">
-                Purge all simulated active incidents, reset microservice health states, and clear audit history.
-              </p>
-            </div>
-            <Button variant="danger" size="sm" onClick={() => setIsResetModalOpen(true)}>
-              Reset System State
-            </Button>
+                  <Icon className={cn('w-4 h-4', activeTab === item.id ? (item.danger ? 'text-red-600' : 'text-blue-600') : 'text-slate-400')} />
+                  {item.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Reset Confirmation Modal */}
-        <Modal
-          isOpen={isResetModalOpen}
-          onClose={() => setIsResetModalOpen(false)}
-          title="Confirm Simulation Reset"
-        >
-          <div className="space-y-4 font-sans text-xs">
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 space-y-1">
-              <p className="font-bold">Are you sure you want to reset the simulation state?</p>
-              <p>This action will wipe all active incident feeds, restore microservice statuses to HEALTHY, and clear the local audit log.</p>
+        {/* Right Content Area (9 cols) */}
+        <div className="md:col-span-9 space-y-6">
+          {activeTab === 'workspace' && (
+            <Card title="Workspace Settings" subtitle="Global organization and region configuration">
+              <div className="space-y-4 pt-2 text-[13px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Workspace ID / Slug</label>
+                    <input
+                      type="text"
+                      disabled
+                      value="acme-corp"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-mono text-slate-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Primary Cloud Region</label>
+                    <input
+                      type="text"
+                      disabled
+                      value="us-east-1 (N. Virginia)"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-mono text-slate-700"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Organization Name</label>
+                  <input
+                    type="text"
+                    defaultValue="Acme Corporation Inc."
+                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <Button variant="primary" size="sm">Save Workspace Changes</Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {activeTab === 'thresholds' && (
+            <Card title="Alert Anomaly Thresholds" subtitle="Configure telemetry breach limits for automatic incident creation">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 text-[12px]">
+                <div className="space-y-2 bg-[#F8FAFC] p-4 rounded-xl border border-[#E5E9F0]">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                      <Cpu className="w-4 h-4 text-blue-600" /> CPU Usage Threshold
+                    </span>
+                    <span className="font-mono font-bold text-blue-600 text-sm">{cpuThreshold}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="95"
+                    value={cpuThreshold}
+                    onChange={(e) => setCpuThreshold(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                  <span className="text-[11px] text-slate-500 block">Trigger incident if sustained above limit for 60s</span>
+                </div>
+
+                <div className="space-y-2 bg-[#F8FAFC] p-4 rounded-xl border border-[#E5E9F0]">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                      <Database className="w-4 h-4 text-indigo-600" /> Memory Load Limit
+                    </span>
+                    <span className="font-mono font-bold text-indigo-600 text-sm">{memThreshold}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="95"
+                    value={memThreshold}
+                    onChange={(e) => setMemThreshold(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                  <span className="text-[11px] text-slate-500 block">Trigger heap dump alert on breach</span>
+                </div>
+
+                <div className="space-y-2 bg-[#F8FAFC] p-4 rounded-xl border border-[#E5E9F0]">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-amber-600" /> p99 Latency Limit
+                    </span>
+                    <span className="font-mono font-bold text-amber-600 text-sm">{latencyThreshold}ms</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="100"
+                    max="1000"
+                    step="50"
+                    value={latencyThreshold}
+                    onChange={(e) => setLatencyThreshold(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                  />
+                  <span className="text-[11px] text-slate-500 block">Maximum acceptable response delay</span>
+                </div>
+
+                <div className="space-y-2 bg-[#F8FAFC] p-4 rounded-xl border border-[#E5E9F0]">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-red-600" /> Error Rate Tolerance
+                    </span>
+                    <span className="font-mono font-bold text-red-600 text-sm">{errorRateThreshold}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="10"
+                    step="0.5"
+                    value={errorRateThreshold}
+                    onChange={(e) => setErrorRateThreshold(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-red-600"
+                  />
+                  <span className="text-[11px] text-slate-500 block">HTTP 5xx error rate trigger limit</span>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {activeTab === 'autonomy' && (
+            <Card title="Agent Autonomy Policy Governance" subtitle="Set safety bounds for autonomous remediation actions">
+              <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {autonomyLevels.map((item: any) => (
+                    <div
+                      key={item.id}
+                      onClick={() => setAutonomyLevel(item.id)}
+                      className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                        autonomyLevel === item.id
+                          ? 'bg-blue-50/70 border-blue-600 shadow-xs ring-2 ring-blue-600/20'
+                          : 'bg-white border-[#E5E9F0] hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-mono text-[13px] font-bold text-slate-900">{item.id}: {item.name}</span>
+                        <input
+                          type="radio"
+                          name="autonomy"
+                          checked={autonomyLevel === item.id}
+                          onChange={() => setAutonomyLevel(item.id)}
+                          className="text-blue-600 focus:ring-blue-500"
+                        />
+                      </div>
+                      <p className="text-[12px] text-slate-600 leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {activeTab === 'integrations' && (
+            <Card title="Connected Integrations" subtitle="Third-party monitoring, alerting, and ticketing integrations">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {integrations.map((integ) => (
+                  <div key={integ.name} className="p-3.5 bg-[#F8FAFC] border border-[#E5E9F0] rounded-xl flex flex-col justify-between space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{integ.icon}</span>
+                        <div>
+                          <h4 className="font-bold text-[13px] text-slate-900">{integ.name}</h4>
+                          <p className="text-[11px] text-slate-500">{integ.desc}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-[#E5E9F0]">
+                      <span className="text-[10px] font-mono font-semibold flex items-center gap-1">
+                        {integ.status === 'CONNECTED' ? (
+                          <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Connected
+                          </span>
+                        ) : (
+                          <span className="text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded flex items-center gap-1">
+                            <XCircle className="w-3 h-3 text-slate-400" /> Disconnected
+                          </span>
+                        )}
+                      </span>
+                      <Button variant="outline" size="sm">Configure</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {activeTab === 'api_keys' && (
+            <Card title="API Keys & Tokens" subtitle="Manage programmatic access keys for Sentinel-X APIs">
+              <div className="space-y-4 pt-2 text-[13px]">
+                <div className="p-4 bg-[#F8FAFC] border border-[#E5E9F0] rounded-xl space-y-3">
+                  <label className="block text-slate-700 font-semibold">Production Ingestion API Key</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={apiKey}
+                      className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 font-mono text-slate-900 font-semibold"
+                    />
+                    <Button variant="outline" size="sm" onClick={handleCopyKey} icon={Copy}>
+                      {isCopied ? 'Copied!' : 'Copy'}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={handleRegenerateKey} icon={RefreshCw}>
+                      Regenerate
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Use this token in your HTTP headers: <code className="font-mono bg-slate-200 px-1 py-0.5 rounded text-slate-800">X-Sentinel-Key: {apiKey}</code>
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {activeTab === 'danger' && (
+            <div className="bg-red-50/70 border border-red-200 rounded-xl p-5 space-y-3 font-sans">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-mono text-[14px] font-bold text-red-900 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-600" /> Danger Zone: Reset Environment State
+                  </h3>
+                  <p className="text-[12px] text-red-700 mt-0.5">
+                    Purge active incident feeds, restore microservices health state, and reset local cache.
+                  </p>
+                </div>
+                <Button variant="danger" size="sm" onClick={() => setIsResetModalOpen(true)}>
+                  Reset System State
+                </Button>
+              </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
-              <Button variant="ghost" size="sm" onClick={() => setIsResetModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="danger" size="sm" onClick={handleResetDB} isLoading={isResetting} icon={RefreshCw}>
-                Confirm Reset
-              </Button>
-            </div>
-          </div>
-        </Modal>
+          )}
+        </div>
       </div>
+
+      {/* Reset Confirmation Modal */}
+      <Modal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        title="Confirm Environment Reset"
+      >
+        <div className="space-y-4 font-sans text-xs">
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 space-y-1">
+            <p className="font-bold">Are you sure you want to reset environment state?</p>
+            <p>This action will clear all active incident feeds, restore microservices to HEALTHY, and wipe telemetry history.</p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+            <Button variant="ghost" size="sm" onClick={() => setIsResetModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" size="sm" onClick={handleResetDB} isLoading={isResetting} icon={RefreshCw}>
+              Confirm Reset
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </PageContainer>
   );
 };
-

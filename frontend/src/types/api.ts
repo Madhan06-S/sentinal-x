@@ -25,5 +25,6 @@ export interface AIActivityItem {
   timestamp: string;
   action: string;
   incident_id?: string;
+  agent_name?: string;
   status: 'COMPLETED' | 'IN_PROGRESS' | 'FAILED';
 }

@@ -1,8 +1,17 @@
+import os
+from pathlib import Path
 from collections.abc import AsyncGenerator
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
 from app.core.config import settings
+
+# Ensure parent directory exists for SQLite database file
+raw_db_path = settings.DATABASE_PATH.replace("sqlite+aiosqlite:///", "").replace("sqlite:///", "")
+if not raw_db_path.startswith(":memory:"):
+    db_file = Path(raw_db_path)
+    if db_file.parent and not db_file.parent.exists():
+        db_file.parent.mkdir(parents=True, exist_ok=True)
 
 connect_args = {"check_same_thread": False, "timeout": 30} if settings.DATABASE_URL.startswith("sqlite") else {}
 engine = create_async_engine(settings.DATABASE_URL, echo=False, connect_args=connect_args)
@@ -12,6 +21,7 @@ if settings.DATABASE_URL.startswith("sqlite"):
     def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA journal_mode=WAL;")
+        cursor.execute("PRAGMA foreign_keys=ON;")
         cursor.execute("PRAGMA busy_timeout=30000;")
         cursor.close()
 

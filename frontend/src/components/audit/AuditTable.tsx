@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { AuditEntry } from '../../types/audit';
-import { ShieldCheck, Bot, User, CheckCircle2, XCircle, Clock, ChevronDown, ChevronRight, Download, FileText, Filter, Search } from 'lucide-react';
+import { Bot, User, CheckCircle2, XCircle, ChevronDown, ChevronRight, Download, FileText, Search, Calendar } from 'lucide-react';
 import { StatusBadge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { exportAuditJSON } from '../../utils/exportAudit';
 
 interface AuditTableProps {
   auditLogs?: AuditEntry[];
@@ -12,6 +13,7 @@ export const AuditTable: React.FC<AuditTableProps> = ({ auditLogs = [] }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [actorFilter, setActorFilter] = useState<string>('ALL');
+  const [dateRange, setDateRange] = useState<string>('7d');
 
   const filteredLogs = auditLogs.filter((log) => {
     const matchesSearch =
@@ -26,13 +28,7 @@ export const AuditTable: React.FC<AuditTableProps> = ({ auditLogs = [] }) => {
   });
 
   const handleExportJSON = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(auditLogs, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `aegis-audit-log-${Date.now()}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+    exportAuditJSON(auditLogs);
   };
 
   const caseVerdictCards = [
@@ -41,7 +37,7 @@ export const AuditTable: React.FC<AuditTableProps> = ({ auditLogs = [] }) => {
       title: 'PostgreSQL Connection Pool Exhaustion',
       verdict: 'AUTONOMOUSLY MITIGATED',
       duration: '42s',
-      actor: 'Aegis AI Agent',
+      actor: 'Sentinel Copilot',
       remediation: 'Restarted connection pooler & flushed leaked handles',
       status: 'success' as const,
     },
@@ -59,31 +55,31 @@ export const AuditTable: React.FC<AuditTableProps> = ({ auditLogs = [] }) => {
       title: 'Redis Cache Eviction Spike',
       verdict: 'AUTO-SCALED CLUSTER',
       duration: '28s',
-      actor: 'Aegis AI Agent',
+      actor: 'Sentinel Copilot',
       remediation: 'Scaled cache node memory limits to 16GB',
       status: 'success' as const,
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       {/* Case File Verdict Cards */}
       <div>
-        <h3 className="text-xs font-mono uppercase tracking-wider font-semibold text-slate-500 mb-3 flex items-center gap-1.5">
+        <h3 className="text-[11px] font-mono uppercase tracking-wider font-semibold text-slate-500 mb-3 flex items-center gap-1.5">
           <FileText className="w-4 h-4 text-blue-600" /> Recent Resolved Incident Verdict Summaries
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {caseVerdictCards.map((card) => (
-            <div key={card.id} className="bg-white rounded-xl border border-slate-200 shadow-card p-4 space-y-2">
+            <div key={card.id} className="bg-white rounded-xl border border-[#E5E9F0] shadow-card p-4 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-bold text-blue-600">{card.id}</span>
-                <StatusBadge status={card.status} text={card.verdict} />
+                <span className="font-mono text-[12px] font-bold text-blue-600">{card.id}</span>
+                <StatusBadge status={card.status} text={card.verdict} size="sm" />
               </div>
-              <h4 className="text-sm font-semibold text-slate-900">{card.title}</h4>
-              <p className="text-xs text-slate-600 font-sans">{card.remediation}</p>
-              <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-2 border-t border-slate-100">
+              <h4 className="text-[13px] font-semibold text-slate-900">{card.title}</h4>
+              <p className="text-[12px] text-slate-600 leading-snug">{card.remediation}</p>
+              <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-2 border-t border-[#E5E9F0]">
                 <span>Actor: {card.actor}</span>
-                <span>Time to Resolve: {card.duration}</span>
+                <span>MTTR: {card.duration}</span>
               </div>
             </div>
           ))}
@@ -91,7 +87,7 @@ export const AuditTable: React.FC<AuditTableProps> = ({ auditLogs = [] }) => {
       </div>
 
       {/* Audit Log Table Header & Controls */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4 space-y-4">
+      <div className="bg-white rounded-xl border border-[#E5E9F0] shadow-card p-4 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-[280px]">
             <div className="relative flex-1">
@@ -101,25 +97,49 @@ export const AuditTable: React.FC<AuditTableProps> = ({ auditLogs = [] }) => {
                 placeholder="Search action, actor, resource, or incident ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-[12px] font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-mono">
+
+            {/* Date-Range Selector */}
+            <div className="flex items-center gap-1 bg-[#F1F4F9] p-1 rounded-lg border border-[#E5E9F0] text-[11px] font-mono">
+              <Calendar className="w-3.5 h-3.5 text-slate-500 ml-1" />
+              {['24h', '7d', '30d'].map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setDateRange(range)}
+                  className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
+                    dateRange === range ? 'bg-white text-blue-600 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {range}
+                </button>
+              ))}
+            </div>
+
+            {/* Agent Filter Chips */}
+            <div className="flex items-center gap-1 bg-[#F1F4F9] p-1 rounded-lg border border-[#E5E9F0] text-[11px] font-mono">
               <button
                 onClick={() => setActorFilter('ALL')}
-                className={`px-2.5 py-1 rounded transition-colors ${actorFilter === 'ALL' ? 'bg-white text-blue-600 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-2.5 py-0.5 rounded transition-colors cursor-pointer ${
+                  actorFilter === 'ALL' ? 'bg-white text-blue-600 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
                 All
               </button>
               <button
                 onClick={() => setActorFilter('AI_ENGINE')}
-                className={`px-2.5 py-1 rounded transition-colors ${actorFilter === 'AI_ENGINE' ? 'bg-white text-purple-600 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-2.5 py-0.5 rounded transition-colors cursor-pointer ${
+                  actorFilter === 'AI_ENGINE' ? 'bg-white text-purple-600 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                AI Engine
+                AI Agent
               </button>
               <button
                 onClick={() => setActorFilter('ENGINEER')}
-                className={`px-2.5 py-1 rounded transition-colors ${actorFilter === 'ENGINEER' ? 'bg-white text-indigo-600 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-2.5 py-0.5 rounded transition-colors cursor-pointer ${
+                  actorFilter === 'ENGINEER' ? 'bg-white text-indigo-600 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
                 Human SRE
               </button>
@@ -132,9 +152,9 @@ export const AuditTable: React.FC<AuditTableProps> = ({ auditLogs = [] }) => {
         </div>
 
         {/* Data Table */}
-        <div className="border border-slate-200 rounded-lg overflow-hidden">
-          <table className="w-full text-left font-mono text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] tracking-wider">
+        <div className="border border-[#E5E9F0] rounded-lg overflow-hidden">
+          <table className="w-full text-left font-mono text-[12px]">
+            <thead className="bg-[#F1F4F9] border-b border-[#E5E9F0] text-slate-500 uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="w-8 px-3 py-3"></th>
                 <th className="px-4 py-3">Time</th>
@@ -145,7 +165,7 @@ export const AuditTable: React.FC<AuditTableProps> = ({ auditLogs = [] }) => {
                 <th className="px-4 py-3 text-right">Result</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#E5E9F0]">
               {filteredLogs.map((log) => {
                 const isExpanded = expandedId === log.id;
                 return (
@@ -190,8 +210,8 @@ export const AuditTable: React.FC<AuditTableProps> = ({ auditLogs = [] }) => {
 
                     {/* Expandable JSON Detail */}
                     {isExpanded && (
-                      <tr className="bg-slate-50">
-                        <td colSpan={7} className="px-6 py-4 border-t border-slate-200">
+                      <tr className="bg-[#F8FAFC]">
+                        <td colSpan={7} className="px-6 py-4 border-t border-[#E5E9F0]">
                           <div className="space-y-2">
                             <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-slate-500 block">
                               Raw Audit Event Payload (JSON)
@@ -213,4 +233,3 @@ export const AuditTable: React.FC<AuditTableProps> = ({ auditLogs = [] }) => {
     </div>
   );
 };
-

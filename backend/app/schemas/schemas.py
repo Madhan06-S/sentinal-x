@@ -303,3 +303,21 @@ class AIDecisionResult(BaseModel):
     decision: str
     reason: str
     action_parameters: dict[str, Any] = {}
+
+
+class BlastRadiusNode(BaseModel):
+    service: str
+    status: str
+    impact: str
+
+
+class BlastRadiusRings(BaseModel):
+    ring1: list[BlastRadiusNode] = Field(default_factory=list)
+    ring2: list[BlastRadiusNode] = Field(default_factory=list)
+    ring3: list[BlastRadiusNode] = Field(default_factory=list)
+
+
+class BlastRadiusResponse(BaseModel):
+    root_cause: str
+    rings: BlastRadiusRings
+

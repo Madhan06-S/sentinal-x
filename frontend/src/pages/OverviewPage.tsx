@@ -10,8 +10,9 @@ import { AIActivityStream } from '../components/dashboard/AIActivityStream';
 import { IncidentSlideOver } from '../components/incidents/IncidentSlideOver';
 import { useIncidents } from '../hooks/useIncidents';
 import { useServices } from '../hooks/useServices';
+import { exportAuditJSON } from '../utils/exportAudit';
 import { Incident } from '../types/incident';
-import { Flame, AlertTriangle, Activity, Server, Cpu, Clock, Download, Filter } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Activity, Server, Cpu, Clock, Download } from 'lucide-react';
 import { Skeleton } from '../components/ui/Skeleton';
 
 export const OverviewPage: React.FC = () => {
@@ -20,15 +21,19 @@ export const OverviewPage: React.FC = () => {
   const { data: incidents, isLoading: isLoadingIncidents } = useIncidents();
   const { data: services, isLoading: isLoadingServices } = useServices();
 
-  const activeCount = incidents?.filter((i) => i.status !== 'RESOLVED').length || 2;
-  const criticalCount = incidents?.filter((i) => i.severity === 'CRITICAL' && i.status !== 'RESOLVED').length || 1;
+  const activeCount = incidents?.filter((i) => i.status !== 'RESOLVED').length || 0;
+  const criticalCount = incidents?.filter((i) => i.severity === 'CRITICAL' && i.status !== 'RESOLVED').length || 0;
+  const servicesAtRisk = services?.filter((s) => s.status !== 'HEALTHY').length || 0;
+  const resolvedCount = incidents?.filter((i) => i.status === 'RESOLVED').length || 0;
+  const totalIncidents = incidents?.length || 1;
+  const autoResolutionRate = ((resolvedCount / Math.max(1, totalIncidents)) * 100).toFixed(1) + '%';
 
   if (isLoadingIncidents || isLoadingServices) {
     return (
-      <PageContainer title="Aegis AI Command Center" description="Real-time autonomous incident resolution engine">
+      <PageContainer title="Incident Command Center" description="Autonomous incident resolution & real-time telemetry">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-28 rounded-[10px]" />
+            <Skeleton key={i} className="h-24 rounded-xl" />
           ))}
         </div>
       </PageContainer>
@@ -36,30 +41,24 @@ export const OverviewPage: React.FC = () => {
   }
 
   const handleExportAudit = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(incidents || [], null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", "aegis_audit_report.json");
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+    exportAuditJSON(incidents || []);
   };
 
   return (
     <PageContainer
-      title="Aegis AI Command Center"
-      description="Real-time autonomous enterprise incident monitoring, root cause detection, and remediation coordination"
+      title="Incident Command Center"
+      description="Autonomous incident resolution, root cause detection, and remediation coordination"
       action={
         <div className="flex flex-col sm:flex-row items-center gap-3 font-sans">
-          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-[#E5E9F0] shadow-xs">
+          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-[#E5E9F0] shadow-2xs">
             {['Live 1h', '6h', '24h', '7d'].map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-2.5 py-1 text-[12px] font-medium rounded-md transition-all ${
+                className={`px-2.5 py-1 text-[12px] font-mono font-medium rounded-md transition-all cursor-pointer ${
                   timeRange === range
                     ? 'bg-blue-600 text-white font-semibold shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 {range}
@@ -68,9 +67,9 @@ export const OverviewPage: React.FC = () => {
           </div>
           <button
             onClick={handleExportAudit}
-            className="rounded-lg border border-[#E5E9F0] bg-white px-3.5 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="rounded-lg border border-[#E5E9F0] bg-white px-3 py-1.5 text-[12px] font-mono font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5 text-slate-500" /> Export Audit Report
+            <Download className="w-3.5 h-3.5 text-slate-500" /> Export Audit JSON
           </button>
         </div>
       }
@@ -81,52 +80,52 @@ export const OverviewPage: React.FC = () => {
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.15 }}
           className="space-y-6"
         >
           {/* 6 Top Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
             <MetricCard
               title="Active Incidents"
               value={activeCount}
-              change="+1 new"
-              isNegativeTrend={true}
+              change={activeCount > 0 ? `+${activeCount} active` : '0 active'}
+              isNegativeTrend={activeCount > 0}
               variant="critical"
-              icon={<Flame className="w-5 h-5 text-red-600" />}
+              icon={<ShieldAlert className="w-4 h-4 text-red-600" />}
             />
             <MetricCard
               title="Critical Signals"
               value={criticalCount}
               variant="critical"
-              icon={<AlertTriangle className="w-5 h-5 text-red-600" />}
+              icon={<AlertTriangle className="w-4 h-4 text-red-600" />}
             />
             <MetricCard
-              title="Alerts Rate"
+              title="Alert Rate"
               value="47/m"
               change="+12/m"
               isNegativeTrend={true}
               variant="default"
-              icon={<Activity className="w-5 h-5 text-blue-600" />}
+              icon={<Activity className="w-4 h-4 text-blue-600" />}
             />
             <MetricCard
               title="Services at Risk"
-              value={2}
+              value={servicesAtRisk}
               variant="warning"
-              icon={<Server className="w-5 h-5 text-amber-600" />}
+              icon={<Server className="w-4 h-4 text-amber-600" />}
             />
             <MetricCard
               title="Auto-Resolved"
-              value={128}
-              change="98.4%"
+              value={resolvedCount}
+              change={autoResolutionRate}
               isNegativeTrend={false}
               variant="healthy"
-              icon={<Cpu className="w-5 h-5 text-emerald-600" />}
+              icon={<Cpu className="w-4 h-4 text-emerald-600" />}
             />
             <MetricCard
               title="Avg MTTR"
-              value="42s"
+              value="2m 14s"
               variant="ai"
-              icon={<Clock className="w-5 h-5 text-indigo-600" />}
+              icon={<Clock className="w-4 h-4 text-indigo-600" />}
             />
           </div>
 

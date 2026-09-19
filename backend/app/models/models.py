@@ -63,6 +63,8 @@ class RemediationStatus(str, enum.Enum):
     SUCCEEDED = "SUCCEEDED"
     FAILED = "FAILED"
     VERIFIED = "VERIFIED"
+    RECOMMEND_ONLY = "RECOMMEND_ONLY"
+
 
 
 class DeploymentStatus(str, enum.Enum):

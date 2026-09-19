@@ -5,7 +5,7 @@ import { AuditEntry } from '../types/audit';
 const normalizeAudit = (a: any): AuditEntry => ({
   id: a.id,
   timestamp: a.created_at ? new Date(a.created_at).toLocaleTimeString() : a.timestamp,
-  actor: a.details?.actor || a.details?.approved_by || 'Aegis System',
+  actor: a.details?.actor || a.details?.approved_by || 'Sentinel-X Engine',
   actor_type: a.event_type?.includes('AI') ? 'AI_ENGINE' : a.event_type?.includes('APPROVAL') ? 'ENGINEER' : 'SYSTEM',
   action: a.event_type || a.action,
   resource: a.incident_id ? `INC-${a.incident_id}` : a.resource || 'System',

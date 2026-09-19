@@ -33,6 +33,28 @@ export const mockApiHandler = {
     return simulationEngine.rcaGraph;
   },
 
+  getBlastRadius: async (incidentId: string) => {
+    const inc = simulationEngine.getIncidentById(incidentId);
+    const rootCause = inc?.affected_services?.[0] || inc?.root_cause || 'payment-service';
+    return {
+      root_cause: rootCause,
+      rings: {
+        ring1: [
+          { service: 'postgresql-primary', status: 'CRITICAL', impact: 'Connection pool exhaustion (100/100 active)' },
+          { service: 'redis-cache', status: 'DEGRADED', impact: 'High connection retry volume' },
+        ],
+        ring2: [
+          { service: 'order-service', status: 'DEGRADED', impact: 'Payment verification timeout' },
+          { service: 'auth-service', status: 'HEALTHY', impact: 'Increased token validation latency' },
+        ],
+        ring3: [
+          { service: 'api-gateway', status: 'DEGRADED', impact: 'HTTP 504 error rate spike to 78.4%' },
+          { service: 'checkout-frontend', status: 'CRITICAL', impact: 'Cart checkout failure for 78% of users' },
+        ],
+      },
+    };
+  },
+
   approveRemediation: async (incidentId: string) => {
     return simulationEngine.approveRemediation(incidentId);
   },

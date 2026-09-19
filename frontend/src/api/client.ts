@@ -1,6 +1,17 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+  if (!envUrl) return 'http://localhost:8000/api/v1';
+  let url = envUrl.trim();
+  if (url.endsWith('/')) url = url.slice(0, -1);
+  if (!url.endsWith('/api/v1')) {
+    url = `${url}/api/v1`;
+  }
+  return url;
+};
+
+export const BASE_URL = getApiBaseUrl();
 export const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' || import.meta.env.VITE_USE_MOCK_API === true;
 
 export const apiClient = axios.create({
@@ -9,7 +20,7 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
-  timeout: 10000,
+  timeout: 15000,
 });
 
 apiClient.interceptors.response.use(

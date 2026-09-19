@@ -16,14 +16,13 @@ export const DeploymentsPage: React.FC = () => {
 
   const handleDeploySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate deployment submission
     setIsDeployModalOpen(false);
   };
 
   return (
     <PageContainer
-      title="Deployments History"
-      description="Recent git release deployments, version tracking, and automated incident correlation"
+      title="Deployments Registry"
+      description="Microservice release history, git tag tracking, and automated failure correlation"
     >
       <DeploymentTable
         deployments={deployments}
@@ -34,7 +33,7 @@ export const DeploymentsPage: React.FC = () => {
       <Modal
         isOpen={isDeployModalOpen}
         onClose={() => setIsDeployModalOpen(false)}
-        title="Deploy New Microservice Version"
+        title="Deploy Microservice Release"
       >
         <form onSubmit={handleDeploySubmit} className="space-y-4 font-sans text-xs">
           <div>
@@ -81,7 +80,7 @@ export const DeploymentsPage: React.FC = () => {
               className="rounded text-blue-600 focus:ring-blue-500"
             />
             <label htmlFor="faultyCheck" className="text-xs font-semibold cursor-pointer">
-              Simulate Faulty Release (Triggers Aegis AI auto-detection)
+              Simulate Controlled Failure (Triggers Sentinel-X auto-detection)
             </label>
           </div>
 
@@ -98,4 +97,3 @@ export const DeploymentsPage: React.FC = () => {
     </PageContainer>
   );
 };
-

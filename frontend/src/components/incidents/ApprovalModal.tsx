@@ -44,7 +44,7 @@ export const ApprovalModal: React.FC<ApprovalModalProps> = ({
     >
       <div className="space-y-4 text-xs font-mono">
         <p className="text-sm font-sans text-slate-700 leading-relaxed">
-          The Aegis AI Engine recommends executing an autonomous remediation for incident{' '}
+          The Sentinel Copilot Engine recommends executing an autonomous remediation for incident{' '}
           <strong className="text-blue-600 font-mono">{incident.incident_id}</strong>.
         </p>
 

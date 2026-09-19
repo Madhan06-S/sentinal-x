@@ -9,7 +9,7 @@ from app.core.action_registry import ACTION_REGISTRY, apply_risk_policy, list_av
 from app.core.config import settings
 from app.core.logging import logger
 from app.core.realtime import publish
-from app.models.models import AIAnalysis, Alert, AlertStatus, Incident, IncidentStatus, RemediationAction, RemediationStatus, Service
+from app.models.models import AIAnalysis, Alert, AlertStatus, Incident, IncidentStatus, RemediationAction, RemediationStatus, Service, RiskLevel
 from app.schemas.schemas import AIInvestigationResult, IncidentResponse
 from app.services.audit_service import create_audit_log
 from app.services.catalog_service import catalog_graph_payload, recent_deployments
@@ -256,12 +256,38 @@ async def run_ai_analysis_pipeline(db: AsyncSession, incident_id: str) -> Incide
                     action_name = v_name
                     break
 
-        try:
-            risk_level, approval_required = apply_risk_policy(action_name, False)
-        except ValueError:
-            logger.warning("AI suggested unknown action %s, defaulting to ESCALATE.", action_name)
-            action_name = "ESCALATE"
-            risk_level, approval_required = apply_risk_policy("ESCALATE", False)
+        risk_level, _ = apply_risk_policy(action_name, False)
+
+        from app.core.autonomy import autonomy_manager, AutonomyLevel
+        current_autonomy = autonomy_manager.get_level()
+
+        # Gate approval_required based on autonomy level policy
+        if current_autonomy == AutonomyLevel.L1:
+            approval_required = False
+            auto_execute = False
+            create_action_row = False
+        elif current_autonomy == AutonomyLevel.L2:
+            approval_required = False
+            auto_execute = False
+            create_action_row = True
+        elif current_autonomy == AutonomyLevel.L3:
+            if risk_level == RiskLevel.LOW:
+                approval_required = False
+                auto_execute = True
+                create_action_row = True
+            else:
+                approval_required = True
+                auto_execute = False
+                create_action_row = True
+        elif current_autonomy == AutonomyLevel.L4:
+            if risk_level in (RiskLevel.LOW, RiskLevel.MEDIUM):
+                approval_required = False
+                auto_execute = True
+                create_action_row = True
+            else:
+                approval_required = True
+                auto_execute = False
+                create_action_row = True
 
         incident.recommended_action = action_name
         incident.action_parameters = {}
@@ -288,28 +314,45 @@ async def run_ai_analysis_pipeline(db: AsyncSession, incident_id: str) -> Incide
         )
         db.add(analysis_row)
 
-        action = RemediationAction(
-            incident_id=incident.id,
-            action_type=action_name,
-            parameters={},
-            risk_level=risk_level,
-            approval_required=approval_required,
-            status=RemediationStatus.PENDING,
-        )
-        db.add(action)
-
-        if approval_required:
-            incident.status = IncidentStatus.AWAITING_APPROVAL
-            await create_audit_log(db, "APPROVAL_REQUESTED", incident.id, {"action": action_name, "risk_level": risk_level.value})
+        if current_autonomy == AutonomyLevel.L1:
+            incident.status = IncidentStatus.INVESTIGATING
+            await create_audit_log(db, "RCA_COMPLETED", incident.id, {"note": "Advisory mode (L1) — zero remediation proposed", "root_cause": analysis.probable_root_cause})
+        elif current_autonomy == AutonomyLevel.L2:
+            incident.status = IncidentStatus.INVESTIGATING
+            action = RemediationAction(
+                incident_id=incident.id,
+                action_type=action_name,
+                parameters={},
+                risk_level=risk_level,
+                approval_required=False,
+                status=RemediationStatus.RECOMMEND_ONLY,
+            )
+            db.add(action)
+            await create_audit_log(db, "RECOMMENDATION_CREATED", incident.id, {"note": "Guarded mode (L2) — action recommended, manual execution required", "action": action_name})
         else:
-            incident.status = IncidentStatus.REMEDIATING
-            await create_audit_log(db, "DECISION_CREATED", incident.id, {"action": action_name, "auto": True, "risk_level": risk_level.value})
+            action = RemediationAction(
+                incident_id=incident.id,
+                action_type=action_name,
+                parameters={},
+                risk_level=risk_level,
+                approval_required=approval_required,
+                status=RemediationStatus.PENDING,
+            )
+            db.add(action)
+
+            if approval_required:
+                incident.status = IncidentStatus.AWAITING_APPROVAL
+                await create_audit_log(db, "APPROVAL_REQUESTED", incident.id, {"action": action_name, "risk_level": risk_level.value, "autonomy": current_autonomy.value})
+            else:
+                incident.status = IncidentStatus.REMEDIATING
+                await create_audit_log(db, "DECISION_CREATED", incident.id, {"action": action_name, "auto": True, "risk_level": risk_level.value, "autonomy": current_autonomy.value})
+                await publish("toast", {"message": f"AUTO-EXECUTED: {action_name} ({current_autonomy.value})", "type": "info"}, incident.id)
 
         await db.commit()
         await db.refresh(incident)
         await publish("incident.updated", IncidentResponse.model_validate(incident).model_dump(mode="json"), incident.id)
 
-        if not approval_required and settings.AUTO_REMEDIATE_LOW_RISK:
+        if current_autonomy in (AutonomyLevel.L3, AutonomyLevel.L4) and not approval_required:
             from app.services.jobs import schedule_remediation
             schedule_remediation(incident.id)
 

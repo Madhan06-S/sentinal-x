@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -7,10 +8,12 @@ from app.core.config import settings
 from app.core.database import AsyncSessionLocal, init_db
 from app.core.logging import setup_logging, logger
 from app.core.seed import seed_catalog
+from app.services.simulator_service import simulator_loop
 from app.api.v1 import (
     alerts,
     approvals,
     audit,
+    chaos,
     deployments,
     incidents,
     remediation,
@@ -19,6 +22,7 @@ from app.api.v1 import (
     webhooks,
     websockets,
     events,
+    autonomy_api,
 )
 from app.api.v1.integrations import github
 
@@ -26,27 +30,52 @@ from app.api.v1.integrations import github
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
-    logger.info("Starting %s in %s mode", settings.PROJECT_NAME, settings.ENVIRONMENT)
+    logger.info("Starting %s in %s mode (port %s)", settings.PROJECT_NAME, settings.ENVIRONMENT, settings.PORT)
     await init_db()
     async with AsyncSessionLocal() as session:
         await seed_catalog(session)
+
+    # Start live enterprise telemetry background simulator
+    sim_task = asyncio.create_task(simulator_loop())
+    logger.info("Live enterprise background simulator task launched")
+
     yield
-    logger.info("Shutting down application")
+
+    # Shutdown simulator task gracefully
+    logger.info("Shutting down background tasks")
+    sim_task.cancel()
+    try:
+        await sim_task
+    except asyncio.CancelledError:
+        pass
+    logger.info("Application shutdown complete")
 
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description=(
         "Backend orchestration layer for the Autonomous Enterprise Incident Resolution Engine. "
-        "The frontend and AI layers integrate only through this API."
+        "The frontend and AI layers integrate through this API."
     ),
     version="1.0.0",
     lifespan=lifespan,
 )
 
+# CORS configuration
+cors_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+if settings.FRONTEND_URL:
+    clean_url = settings.FRONTEND_URL.strip().rstrip("/")
+    if clean_url and clean_url not in cors_origins:
+        cors_origins.append(clean_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=cors_origins if settings.ENVIRONMENT != "development" else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,6 +100,15 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
+@app.get("/health")
+async def root_health():
+    """Railway health check endpoint."""
+    return {
+        "status": "ok",
+        "service": "sentinel-x"
+    }
+
+
 @app.get("/api/v1/health")
 async def health_check():
     db_ok = True
@@ -84,8 +122,7 @@ async def health_check():
         "status": "ok" if db_ok else "degraded",
         "environment": settings.ENVIRONMENT,
         "database": "up" if db_ok else "down",
-        "ai_layer_1_mock": settings.AI_LAYER_1_MOCK,
-        "ai_layer_2_mock": settings.AI_LAYER_2_MOCK,
+        "service": "sentinel-x",
     }
 
 
@@ -98,15 +135,12 @@ app.include_router(remediation.router, prefix="/api/v1/remediation", tags=["Reme
 app.include_router(approvals.router, prefix="/api/v1/approvals", tags=["Approvals"])
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["Audit"])
 app.include_router(simulation.router, prefix="/api/v1/simulation", tags=["Simulation"])
+app.include_router(simulation.router, prefix="/simulation", tags=["Simulation Alias"])
+app.include_router(chaos.router, prefix="/api/v1/chaos", tags=["Chaos"])
+app.include_router(chaos.router, prefix="/chaos", tags=["Chaos Alias"])
+app.include_router(autonomy_api.router, prefix="/api/v1/autonomy", tags=["Autonomy"])
+app.include_router(autonomy_api.router, prefix="/autonomy", tags=["Autonomy Alias"])
 app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
 app.include_router(websockets.router, prefix="/api/v1/ws", tags=["WebSockets"])
 app.include_router(websockets.router, prefix="/ws", tags=["WebSockets Alias"])
 app.include_router(github.router, prefix="/api/v1/integrations/github", tags=["Integrations"])
-
-from fastapi.responses import FileResponse
-from pathlib import Path
-
-@app.get("/", response_class=FileResponse, include_in_schema=False)
-async def serve_dashboard():
-    html_path = Path(__file__).parent / "static" / "index.html"
-    return FileResponse(html_path)

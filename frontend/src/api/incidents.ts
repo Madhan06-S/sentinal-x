@@ -143,11 +143,21 @@ export const getRCAGraph = async (incidentId: string): Promise<RCAGraphData> => 
   return mockApiHandler.getRCAGraph(incidentId);
 };
 
+export const getBlastRadius = async (incidentId: string): Promise<import('../types/rca').BlastRadiusData> => {
+  if (USE_MOCK_API) return mockApiHandler.getBlastRadius(incidentId);
+  try {
+    const res = await apiClient.get(`/incidents/${incidentId}/blast-radius`);
+    return res.data;
+  } catch (err) {
+    return mockApiHandler.getBlastRadius(incidentId);
+  }
+};
+
 export const approveRemediation = async (incidentId: string): Promise<Incident> => {
   if (USE_MOCK_API) return mockApiHandler.approveRemediation(incidentId);
   const res = await apiClient.post(`/incidents/${incidentId}/approve`, {
     approved_by: 'SRE-Command-Center',
-    comment: 'Approved remediation action from Aegis UI',
+    comment: 'Approved remediation action from Sentinel-X UI',
     decision: 'APPROVED',
   });
   return normalizeIncident(res.data);

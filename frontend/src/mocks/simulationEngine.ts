@@ -15,6 +15,7 @@ class SimulationEngine {
   public auditLogs: AuditEntry[] = JSON.parse(JSON.stringify(initialAuditLogs));
   public aiActivities: AIActivityItem[] = JSON.parse(JSON.stringify(initialAIActivity));
   public rcaGraph = JSON.parse(JSON.stringify(initialRCAGraph));
+  public autonomyLevel: 'L1' | 'L2' | 'L3' | 'L4' = 'L3';
 
   public isSimulating = false;
 
@@ -25,6 +26,15 @@ class SimulationEngine {
 
   private notify(type: string, payload: any) {
     this.listeners.forEach((l) => l({ type, payload }));
+  }
+
+  public setAutonomyLevel(level: 'L1' | 'L2' | 'L3' | 'L4') {
+    this.autonomyLevel = level;
+    this.notify('AUTONOMY_UPDATED', { level });
+  }
+
+  public getAutonomyLevel() {
+    return this.autonomyLevel;
   }
 
   public getIncidentById(id: string): Incident | undefined {
@@ -43,7 +53,6 @@ class SimulationEngine {
       inc.remediation.progress_percent = 25;
     }
 
-    // Add audit entry
     const newAudit: AuditEntry = {
       id: `aud-${Date.now()}`,
       timestamp: new Date().toLocaleTimeString(),
@@ -60,7 +69,6 @@ class SimulationEngine {
     this.notify('INCIDENT_UPDATED', inc);
     this.notify('AUDIT_LOG_ADDED', newAudit);
 
-    // Simulate remediation steps execution asynchronously
     this.runRemediationExecution(inc);
 
     return inc;
@@ -70,7 +78,7 @@ class SimulationEngine {
     const inc = this.getIncidentById(incidentId);
     if (!inc) throw new Error(`Incident ${incidentId} not found`);
 
-    inc.status = 'OPEN';
+    inc.status = 'INVESTIGATING';
     inc.updated_at = new Date().toISOString();
     inc.approval_required = false;
 
@@ -93,48 +101,43 @@ class SimulationEngine {
   }
 
   private async runRemediationExecution(inc: Incident) {
-    const delays = [1500, 2000, 2500, 2000];
+    const delays = [1200, 1500, 1500, 1200];
     
-    // Step 1: Executing rollback
     await new Promise((r) => setTimeout(r, delays[0]));
     if (inc.remediation) {
       inc.remediation.progress_percent = 50;
-      inc.remediation.verification_steps[0].status = 'PASSED';
-      inc.remediation.verification_steps[1].status = 'IN_PROGRESS';
+      if (inc.remediation.verification_steps?.[0]) inc.remediation.verification_steps[0].status = 'PASSED';
+      if (inc.remediation.verification_steps?.[1]) inc.remediation.verification_steps[1].status = 'IN_PROGRESS';
     }
     this.notify('INCIDENT_UPDATED', inc);
 
-    // Step 2: Pool flushing
     await new Promise((r) => setTimeout(r, delays[1]));
     if (inc.remediation) {
       inc.remediation.progress_percent = 75;
-      inc.remediation.verification_steps[1].status = 'PASSED';
-      inc.remediation.verification_steps[2].status = 'IN_PROGRESS';
+      if (inc.remediation.verification_steps?.[1]) inc.remediation.verification_steps[1].status = 'PASSED';
+      if (inc.remediation.verification_steps?.[2]) inc.remediation.verification_steps[2].status = 'IN_PROGRESS';
     }
     this.notify('INCIDENT_UPDATED', inc);
 
-    // Step 3: Error rate normalization & verification
     await new Promise((r) => setTimeout(r, delays[2]));
     inc.status = 'VERIFYING';
     if (inc.remediation) {
       inc.remediation.status = 'VERIFYING';
       inc.remediation.progress_percent = 90;
-      inc.remediation.verification_steps[2].status = 'PASSED';
-      inc.remediation.verification_steps[3].status = 'IN_PROGRESS';
+      if (inc.remediation.verification_steps?.[2]) inc.remediation.verification_steps[2].status = 'PASSED';
+      if (inc.remediation.verification_steps?.[3]) inc.remediation.verification_steps[3].status = 'IN_PROGRESS';
     }
     this.notify('INCIDENT_UPDATED', inc);
 
-    // Step 4: Final verification & Resolution!
     await new Promise((r) => setTimeout(r, delays[3]));
     inc.status = 'RESOLVED';
     inc.resolved_at = new Date().toISOString();
     if (inc.remediation) {
       inc.remediation.status = 'COMPLETED';
       inc.remediation.progress_percent = 100;
-      inc.remediation.verification_steps[3].status = 'PASSED';
+      if (inc.remediation.verification_steps?.[3]) inc.remediation.verification_steps[3].status = 'PASSED';
     }
 
-    // Recover services
     const paymentSrv = this.services.find((s) => s.name === 'payment-service');
     if (paymentSrv) {
       paymentSrv.status = 'HEALTHY';
@@ -143,17 +146,11 @@ class SimulationEngine {
       paymentSrv.version = 'v2.4.0';
       paymentSrv.active_alerts_count = 0;
     }
-    const dbSrv = this.services.find((s) => s.name === 'postgresql-primary');
-    if (dbSrv) {
-      dbSrv.status = 'HEALTHY';
-      dbSrv.metrics.error_rate_percent = 0.0;
-      dbSrv.metrics.cpu_percent = 18;
-    }
 
     const resAudit: AuditEntry = {
       id: `aud-${Date.now()}`,
       timestamp: new Date().toLocaleTimeString(),
-      actor: 'Aegis Remediation Agent',
+      actor: 'Sentinel Remediation Agent',
       actor_type: 'AI_ENGINE',
       action: 'Verification Passed & Incident Resolved',
       resource: inc.incident_id,
@@ -180,21 +177,20 @@ class SimulationEngine {
       service: 'payment-service',
       alert_type: 'High Error Rate & DB Exhaustion',
       severity: 'CRITICAL',
-      message: 'Simulated alert storm detected across payment pipeline',
+      message: 'Simulated failure injection: memory_leak on payment-service',
       timestamp: new Date().toISOString(),
       status: 'ACTIVE',
     };
     this.alerts.unshift(newAlert);
     this.notify('NEW_ALERT', newAlert);
 
-    // Create fresh incident
     const newInc: Incident = {
       incident_id: simIncId,
-      title: 'Automated Demo: Checkout API Failure & DB Pool Saturation',
+      title: 'Failure Injection: payment-db connection pool exhaustion',
       status: 'OPEN',
       severity: 'CRITICAL',
       affected_services: ['payment-service', 'postgresql-primary'],
-      business_impact_summary: 'Simulated 82% payment failure rate',
+      business_impact_summary: 'Simulated 78.4% payment failure rate',
       correlated_alert_ids: [newAlert.id],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -202,38 +198,46 @@ class SimulationEngine {
     this.incidents.unshift(newInc);
     this.notify('NEW_INCIDENT', newInc);
 
-    // Sequence the AI pipeline
     setTimeout(() => {
       newInc.status = 'INVESTIGATING';
-      newInc.timeline = [
-        { id: 'st-1', timestamp: new Date().toLocaleTimeString(), title: 'Alert Storm Detected', description: 'Received 12 high-severity alerts within 5s window', type: 'ALERT' },
-        { id: 'st-2', timestamp: new Date().toLocaleTimeString(), title: 'AI Investigation Active', description: 'Building causal graph and probing microservice telemetry', type: 'AI_EVENT' },
-      ];
-      this.notify('INCIDENT_UPDATED', newInc);
-    }, 2000);
-
-    setTimeout(() => {
-      newInc.status = 'AWAITING_APPROVAL';
-      newInc.root_cause = 'Database Connection Exhaustion from unclosed statement handles in payment-service v2.4.1';
+      newInc.title = 'payment-db connection pool exhaustion';
+      newInc.root_cause = 'Database connection pool exhaustion following deployment v2.4.1';
       newInc.confidence = 96;
       newInc.recommended_action = 'ROLLBACK_DEPLOYMENT';
       newInc.risk_level = 'MEDIUM';
-      newInc.approval_required = true;
-      newInc.timeline?.push({
-        id: 'st-3',
-        timestamp: new Date().toLocaleTimeString(),
-        title: 'Root Cause Identified',
-        description: 'AI model isolated payment-service v2.4.1 as source of DB socket exhaustion (96% confidence)',
-        type: 'AI_EVENT',
-      });
-      newInc.ai_investigation = JSON.parse(JSON.stringify(heroIncident.ai_investigation));
-      newInc.ai_decision = JSON.parse(JSON.stringify(heroIncident.ai_decision));
-      newInc.business_impact_details = JSON.parse(JSON.stringify(heroIncident.business_impact_details));
-      newInc.remediation = JSON.parse(JSON.stringify(heroIncident.remediation));
-      
+
+      // Behavior per Autonomy Level
+      if (this.autonomyLevel === 'L1') {
+        newInc.status = 'INVESTIGATING';
+        newInc.approval_required = false;
+        newInc.remediation = undefined;
+      } else if (this.autonomyLevel === 'L2') {
+        newInc.status = 'INVESTIGATING';
+        newInc.approval_required = false;
+        newInc.remediation = {
+          action: 'ROLLBACK_DEPLOYMENT',
+          target_service: 'payment-service',
+          status: 'RECOMMEND_ONLY' as any,
+          progress_percent: 0,
+          verification_steps: [],
+        };
+      } else if (this.autonomyLevel === 'L3') {
+        // Medium risk -> Awaiting Approval
+        newInc.status = 'AWAITING_APPROVAL';
+        newInc.approval_required = true;
+        newInc.remediation = JSON.parse(JSON.stringify(heroIncident.remediation));
+      } else if (this.autonomyLevel === 'L4') {
+        // Medium risk -> Auto-execute under L4!
+        newInc.status = 'REMEDIATING';
+        newInc.approval_required = false;
+        newInc.remediation = JSON.parse(JSON.stringify(heroIncident.remediation));
+        if (newInc.remediation) newInc.remediation.status = 'EXECUTING';
+        this.runRemediationExecution(newInc);
+      }
+
       this.notify('INCIDENT_UPDATED', newInc);
       this.isSimulating = false;
-    }, 5000);
+    }, 2500);
 
     return { status: 'SIMULATION_STARTED', incident_id: simIncId };
   }

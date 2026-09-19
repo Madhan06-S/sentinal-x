@@ -29,7 +29,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Alerts', path: '/alerts', icon: AlertTriangle },
     { label: 'Services', path: '/services', icon: Server },
     { label: 'Deployments', path: '/deployments', icon: GitCommit },
-    { label: 'AI Analysis', path: '/ai-analysis', icon: Sparkles, highlight: true },
+    { label: 'Copilot Insights', path: '/ai-analysis', icon: Sparkles, highlight: true },
     { label: 'Audit Logs', path: '/audit', icon: FileText },
   ];
 
@@ -37,7 +37,7 @@ export const Sidebar: React.FC = () => {
     <motion.aside
       initial={false}
       animate={{ width: collapsed ? 76 : 240 }}
-      transition={{ duration: 0.2, ease: 'easeInOut' }}
+      transition={{ duration: 0.15, ease: 'easeInOut' }}
       className="relative flex h-full flex-col border-r border-[#E5E9F0] bg-white px-3 py-4 z-30 shrink-0 select-none shadow-xs font-sans"
     >
       {/* Brand Header */}
@@ -51,10 +51,12 @@ export const Sidebar: React.FC = () => {
             animate={{ opacity: 1 }}
             className="ml-3 flex flex-col min-w-0"
           >
-            <span className="text-base font-bold tracking-tight text-slate-900 font-mono">
-              AEGIS <span className="text-blue-600 text-xs font-sans font-semibold">2.0</span>
+            <span className="text-sm font-extrabold tracking-wider text-slate-900 font-mono">
+              SENTINEL-X
             </span>
-            <span className="text-[11px] text-slate-500 leading-none">AIOps Command</span>
+            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-tight truncate">
+              Autonomous Incident Resolution
+            </span>
           </motion.div>
         )}
       </div>
@@ -72,18 +74,18 @@ export const Sidebar: React.FC = () => {
                 className={cn(
                   'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 cursor-pointer',
                   isActive
-                    ? 'bg-[#F1F4F9] text-blue-600 font-semibold shadow-2xs'
+                    ? 'bg-[#F1F4F9] text-blue-600 font-semibold border-r-2 border-blue-600'
                     : item.highlight
-                    ? 'text-indigo-600 hover:bg-indigo-50/60 hover:text-indigo-700'
+                    ? 'text-blue-700 hover:bg-blue-50/60'
                     : 'text-slate-600 hover:bg-[#F8FAFC] hover:text-slate-900'
                 )}
               >
-                <item.icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-blue-600' : item.highlight ? 'text-indigo-600' : 'text-slate-500')} />
+                <item.icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-blue-600' : item.highlight ? 'text-blue-600' : 'text-slate-500')} />
                 {!collapsed && <span className="truncate">{item.label}</span>}
 
                 {/* Badge */}
                 {!collapsed && item.badge !== undefined && (
-                  <span className="ml-auto px-2 py-0.5 text-[11px] font-mono font-bold bg-red-600 text-white rounded-full">
+                  <span className="ml-auto px-2 py-0.5 text-[10px] font-mono font-bold bg-red-600 text-white rounded-full">
                     {item.badge}
                   </span>
                 )}
@@ -129,3 +131,4 @@ export const Sidebar: React.FC = () => {
     </motion.aside>
   );
 };
+

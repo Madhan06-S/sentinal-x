@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getIncidents, approveRemediation, rejectRemediation, getRCAGraph } from '../api/incidents';
+import { getIncidents, approveRemediation, rejectRemediation, getRCAGraph, getBlastRadius } from '../api/incidents';
 import { Incident } from '../types/incident';
-import { RCAGraphData } from '../types/rca';
+import { RCAGraphData, BlastRadiusData } from '../types/rca';
 
 export const useIncidents = () => {
   return useQuery<Incident[]>({
@@ -14,7 +14,15 @@ export const useIncidents = () => {
 export const useRCAGraph = (incidentId?: string) => {
   return useQuery<RCAGraphData>({
     queryKey: ['rcaGraph', incidentId],
-    queryFn: () => getRCAGraph(incidentId || 'INC-8942'),
+    queryFn: () => getRCAGraph(incidentId || 'INC-1042'),
+    enabled: !!incidentId,
+  });
+};
+
+export const useBlastRadius = (incidentId?: string) => {
+  return useQuery<BlastRadiusData>({
+    queryKey: ['blastRadius', incidentId],
+    queryFn: () => getBlastRadius(incidentId || 'INC-1042'),
     enabled: !!incidentId,
   });
 };

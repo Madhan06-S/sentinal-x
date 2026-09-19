@@ -11,6 +11,9 @@ from app.schemas.schemas import (
     RejectionRequest,
     AlertResponse,
     AIAnalysisRecord,
+    BlastRadiusResponse,
+    BlastRadiusRings,
+    BlastRadiusNode,
 )
 from app.services.incident_service import (
     get_incident,
@@ -71,6 +74,32 @@ async def read_incident_graph(incident_id: str, db: AsyncSession = Depends(get_d
     if not incident:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
     return get_incident_graph(incident)
+
+
+@router.get("/{incident_id}/blast-radius", response_model=BlastRadiusResponse)
+async def read_incident_blast_radius(incident_id: str, db: AsyncSession = Depends(get_db)):
+    incident = await get_incident(db, incident_id)
+    if not incident:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
+    root_cause = incident.root_cause or "payment-service"
+    return BlastRadiusResponse(
+        root_cause=root_cause,
+        rings=BlastRadiusRings(
+            ring1=[
+                BlastRadiusNode(service="postgresql-primary", status="CRITICAL", impact="Connection pool exhaustion (100/100 active)"),
+                BlastRadiusNode(service="redis-cache", status="DEGRADED", impact="High connection retry volume"),
+            ],
+            ring2=[
+                BlastRadiusNode(service="order-service", status="DEGRADED", impact="Payment verification timeout"),
+                BlastRadiusNode(service="auth-service", status="HEALTHY", impact="Increased token validation latency"),
+            ],
+            ring3=[
+                BlastRadiusNode(service="api-gateway", status="DEGRADED", impact="HTTP 504 error rate spike to 78.4%"),
+                BlastRadiusNode(service="checkout-frontend", status="CRITICAL", impact="Cart checkout failure for 78% of users"),
+            ],
+        ),
+    )
+
 
 
 @router.post("/{incident_id}/investigate", response_model=IncidentResponse)

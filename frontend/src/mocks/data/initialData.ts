@@ -288,7 +288,7 @@ export const initialAlerts: Alert[] = [
     timestamp: '2026-09-18T12:41:03Z',
     status: 'CORRELATED',
     incident_id: 'INC-1042',
-    metadata: { image: 'docker.io/aegis/payment-service:v2.4.1', commit: 'e9a4f21' },
+    metadata: { image: 'docker.io/sentinel/payment-service:v2.4.1', commit: 'e9a4f21' },
   },
   {
     id: 'ALT-899',
@@ -453,7 +453,7 @@ export const initialAuditLogs: AuditEntry[] = [
   {
     id: 'aud-9',
     timestamp: '2026-09-18T12:41:41Z',
-    actor: 'Aegis AI Engine L2',
+    actor: 'Sentinel Copilot L2',
     actor_type: 'AI_ENGINE',
     action: 'Remediation Decision',
     resource: 'INC-1042',
@@ -464,7 +464,7 @@ export const initialAuditLogs: AuditEntry[] = [
   {
     id: 'aud-8',
     timestamp: '2026-09-18T12:41:35Z',
-    actor: 'Aegis AI Engine L1',
+    actor: 'Sentinel Copilot L1',
     actor_type: 'AI_ENGINE',
     action: 'Incident Investigation & RCA',
     resource: 'INC-1042',

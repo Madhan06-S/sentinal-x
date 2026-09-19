@@ -44,6 +44,13 @@ export const ToastContainer: React.FC = () => {
           message: `${event.payload.incident_id} verified and recovered successfully`,
           type: 'success',
         };
+      } else if (event.type === 'CUSTOM_TOAST' || event.type === 'TOAST') {
+        toast = {
+          id: `t-${Date.now()}`,
+          title: event.payload.title || 'Notification',
+          message: event.payload.message || '',
+          type: event.payload.type || 'info',
+        };
       }
 
       if (toast) {

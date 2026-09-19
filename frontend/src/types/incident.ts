@@ -91,6 +91,8 @@ export interface Incident {
   business_impact_details?: BusinessImpact;
   ai_decision?: AIDecision;
   remediation?: RemediationStatus;
+  approved_by?: string;
+  remediation_actions?: any[];
 }
 
 export interface IncidentFilters {

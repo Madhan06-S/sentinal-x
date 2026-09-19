@@ -7,6 +7,8 @@ export interface RCANodeData {
   status: 'healthy' | 'warning' | 'critical' | 'root_cause' | 'remediated';
   metrics?: string;
   confidence?: number;
+  impact?: string;
+  ring?: number;
   metadata?: Record<string, any>;
   [key: string]: unknown; // Index signature for React Flow compatibility
 }
@@ -26,4 +28,21 @@ export interface RCAGraphData {
     animated?: boolean;
     style?: Record<string, any>;
   }>;
+}
+
+export interface BlastRadiusNode {
+  service: string;
+  status: string;
+  impact: string;
+}
+
+export interface BlastRadiusRings {
+  ring1: BlastRadiusNode[];
+  ring2: BlastRadiusNode[];
+  ring3: BlastRadiusNode[];
+}
+
+export interface BlastRadiusData {
+  root_cause: string;
+  rings: BlastRadiusRings;
 }
