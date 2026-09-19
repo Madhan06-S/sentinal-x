@@ -67,6 +67,8 @@ cors_origins = [
     "http://127.0.0.1:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://sentinel-x-1.onrender.com",
+    "https://sentinel-x-nqm6.onrender.com",
 ]
 if settings.FRONTEND_URL:
     clean_url = settings.FRONTEND_URL.strip().rstrip("/")
@@ -75,7 +77,8 @@ if settings.FRONTEND_URL:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins if settings.ENVIRONMENT != "development" else ["*"],
+    allow_origins=["*"] if settings.ENVIRONMENT == "development" else cors_origins,
+    allow_origin_regex=r"https://.*\.onrender\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

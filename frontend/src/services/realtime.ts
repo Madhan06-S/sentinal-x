@@ -6,25 +6,33 @@ export type ConnectionStatus = 'LIVE' | 'RECONNECTING' | 'OFFLINE';
 type StatusCallback = (status: ConnectionStatus) => void;
 
 export const getWebSocketUrl = (): string => {
-  if (import.meta.env.VITE_WS_URL) {
-    return import.meta.env.VITE_WS_URL;
+  const envWs = import.meta.env.VITE_WS_URL;
+  if (envWs && envWs.trim()) {
+    const rawWs = envWs.trim();
+    if (rawWs.startsWith('wss://') || rawWs.startsWith('ws://')) {
+      return rawWs;
+    }
   }
-  const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+  const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'https://sentinel-x-nqm6.onrender.com';
   let wsUrl = apiUrl.trim();
 
   if (wsUrl.startsWith('https://')) {
     wsUrl = wsUrl.replace('https://', 'wss://');
   } else if (wsUrl.startsWith('http://')) {
     wsUrl = wsUrl.replace('http://', 'ws://');
+  } else if (!wsUrl.startsWith('wss://') && !wsUrl.startsWith('ws://')) {
+    wsUrl = `wss://${wsUrl}`;
   }
 
-  // Strip trailing /api/v1 if present
-  wsUrl = wsUrl.replace(/\/api\/v1\/?$/, '').rstrip?.('/') || wsUrl.replace(/\/api\/v1\/?$/, '');
+  // Strip trailing /api/v1 or trailing slashes
+  wsUrl = wsUrl.replace(/\/api\/v1\/?$/, '');
   if (wsUrl.endsWith('/')) {
     wsUrl = wsUrl.slice(0, -1);
   }
-  if (!wsUrl.endsWith('/ws')) {
-    wsUrl = `${wsUrl}/ws`;
+
+  if (!wsUrl.endsWith('/api/v1/ws') && !wsUrl.endsWith('/ws')) {
+    wsUrl = `${wsUrl}/api/v1/ws`;
   }
   return wsUrl;
 };

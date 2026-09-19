@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const getApiBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
-  if (!envUrl) return 'http://localhost:8000/api/v1';
+  if (!envUrl) return 'https://sentinel-x-nqm6.onrender.com/api/v1';
   let url = envUrl.trim();
   if (url.endsWith('/')) url = url.slice(0, -1);
   if (!url.endsWith('/api/v1')) {
