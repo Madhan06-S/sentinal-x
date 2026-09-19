@@ -136,8 +136,8 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ### Frontend Setup
 
 ```bash
-# Navigate to root directory
-cd ..
+# Navigate to frontend directory
+cd frontend
 
 # Install npm dependencies
 npm install
@@ -173,7 +173,7 @@ GITHUB_WEBHOOK_SECRET="your-github-webhook-secret"
 AUTO_REMEDIATE_LOW_RISK=true
 ```
 
-### Frontend `.env` (`.env`)
+### Frontend `.env` (`frontend/.env`)
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api/v1
 VITE_WS_URL=ws://localhost:8000/ws
@@ -192,6 +192,7 @@ venv/bin/pytest -v
 
 ### Frontend Typecheck & Production Build
 ```bash
+cd frontend
 npx tsc --noEmit
 npm run build
 ```

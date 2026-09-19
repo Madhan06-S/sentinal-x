@@ -46,10 +46,17 @@ jobs:
           node-version: '20'
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: |
+          cd frontend
+          npm ci
 
       - name: Run TypeScript type check
-        run: npx tsc --noEmit
+        run: |
+          cd frontend
+          npx tsc --noEmit
 
       - name: Build production bundle
-        run: npm run build
+        run: |
+          cd frontend
+          npm run build
+
